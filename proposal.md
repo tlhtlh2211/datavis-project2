@@ -14,14 +14,12 @@ We plan to gather data from both online sources (e.g., public Spotify datasets) 
 
 ## Weekly Plan
 
-## Weekly Plan
-
 | Week | Task | Team Member(s) |
 |:---|:---|:---|
-| 1 | Initial team meeting: Outline project structure, set up GitHub repository, define data needs and app features. | Hai, Sammantha |
-| 2 | Collect Spotify data from online sources (Hai); Collect Spotify data from personal submissions (Sammantha); Pre-process and clean data (both). | Hai, Sammantha |
-| 3 | Write data extraction scripts for genre and artist information (Hai); Write data aggregation scripts for listening time and frequency (Sammantha); Conduct initial testing of backend scripts (both). | Hai, Sammantha |
-| 4 | Design Shiny app user interface (Sammantha); Connect frontend UI to backend processed data (Hai); Implement dynamic plots/charts (Sammantha); Add input options for user filtering and search (Hai). | Hai, Sammantha |
-| 5 | Finalize Shiny app features; Prepare presentation slides (Sammantha); Prepare demo and walkthrough video (Hai); Run final tests and gather feedback from participants (both). | Hai, Sammantha |
+| 1 | Team meeting: Plan the project, set up GitHub, decide what features the Shiny app will have. | Hai, Sammantha |
+| 2 | Collect Spotify data from online sources (Hai); Collect Spotify data from friends (Sammantha); Clean and format data in R (both). | Hai, Sammantha |
+| 3 | Write R scripts to extract genre and artist info from data (Hai); Write R scripts to summarize top songs, artists, and total listening time (Sammantha); Test R scripts together. | Hai, Sammantha |
+| 4 | Design the Shiny app layout (Sammantha); Link the R data processing code to the Shiny app (Hai); Create basic plots (Sammantha); Add filter/search options for users (Hai). | Hai, Sammantha |
+| 5 | Finish the Shiny app; Sammantha makes the presentation slides; Hai makes a short demo video; Test the app with friends and get feedback. | Hai, Sammantha |
 
 > **Disclaimer**: Until we can contact the remaining team member, Le Nguyen Gia Binh, we have temporarily assigned tasks between Hai and Sammantha. We will redistribute and assign appropriate tasks to Le Nguyen Gia Binh once he is available.
