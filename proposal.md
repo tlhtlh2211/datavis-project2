@@ -10,7 +10,7 @@ Our project aims to create a customised version of Spotify Wrapped that reflects
 
 The motivation for this project comes from feedback from friends and peers who felt that last year’s official Spotify Wrapped did not accurately represent their music tastes. Typically, Wrapped provides its 675 million users with an interactive display of genre stories, cultural comparisons, music-personality quizzes, and location-based taste matches. However, the 2024 Wrapped lacked much of the human-like creativity it was known for, instead displaying basic lists of artists and songs (often with inaccuracies) and an AI-generated podcast. By applying the visualisation techniques we have learned in the Data Visualization course and developing our skills further, we hope to create a more precise and satisfying experience for music listeners.
 
-## Method
+## Method to create Shiny App
 
 1. Create a Spotify developer account  
 2. Create and register an app to get API keys  
