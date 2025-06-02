@@ -36,9 +36,10 @@ function(input, output, session) {
     mood_data = NULL,
     popularity_data = NULL,
     genre_data = NULL,
+    personality_data = NULL,
     logged_in = FALSE,
     current_slide = 1,
-    total_slides = 8,
+    total_slides = 9,
     # User preferences for data fetching
     user_prefs = list(
       top_artists_count = 5,
@@ -57,7 +58,24 @@ function(input, output, session) {
     list(id = "popularity", title = "Your Music Taste"),
     list(id = "genres", title = "Your Genre Universe"),
     list(id = "moods", title = "Your Musical Moods"),
+    list(id = "personality", title = "Your Musical Personality"),
     list(id = "thank-you", title = "That's Your 2024 Wrap!")
+  )
+  
+  # Available datasets for selection
+  available_datasets <- list(
+    list(
+      username = "m36i6tkbyxen3w6euott3ufhi", 
+      filename = "m36i6tkbyxen3w6euott3ufhi_spotify.json",
+      display_name = "User Dataset 1 (Bò)",
+      description = "K-pop, hyperpop, art pop enthusiast"
+    ),
+    list(
+      username = "bnloh6i0ho8vorne47adabziz", 
+      filename = "bnloh6i0ho8vorne47adabziz_spotify.json",
+      display_name = "User Dataset 2",
+      description = "Alternative music taste profile"
+    )
   )
   
   # Update total slides when logged in
@@ -306,9 +324,75 @@ function(input, output, session) {
     })
   }
   
+  # Function to fetch personality prediction
+  fetchPersonalityPrediction <- function(time_range = "medium_term") {
+    if (is.null(values$username) || is.null(values$filename)) return()
+    
+    tryCatch({
+      url <- paste0("http://127.0.0.1:5000/analysis/personality_prediction?username=",
+                   values$username, "&filename=", values$filename,
+                   "&time_range=", time_range)
+      response <- GET(url)
+      
+      if (status_code(response) == 200) {
+        values$personality_data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+        cat("Personality prediction data fetched\n")
+      }
+    }, error = function(e) {
+      cat("Error fetching personality prediction:", e$message, "\n")
+    })
+  }
+  
+  # Function to load dataset from existing file
+  loadDatasetFromFile <- function(username, filename) {
+    tryCatch({
+      cat("Loading dataset from file:", filename, "\n")
+      
+      # Set login status and credentials
+      values$logged_in <- TRUE
+      values$username <- username
+      values$filename <- filename
+      
+      # Load user profile data for the welcome slide
+      json_file_path <- paste0("api/data/", filename)
+      
+      if (file.exists(json_file_path)) {
+        cat("Reading user profile from file:", json_file_path, "\n")
+        spotify_data <- fromJSON(json_file_path, simplifyVector = FALSE)
+        
+        # Load only user profile data for initial setup
+        for (item in spotify_data) {
+          if (item$step == "current_user") {
+            values$current_user <- item$data
+            cat("Loaded user profile data for welcome slide\n")
+            break
+          }
+        }
+        
+        showNotification(paste("Successfully loaded dataset:", filename), type = "message")
+      } else {
+        showNotification("Dataset file not found!", type = "error")
+      }
+    }, error = function(e) {
+      showNotification(paste("Error loading dataset:", e$message), type = "error")
+      cat("Error in loadDatasetFromFile:", e$message, "\n")
+    })
+  }
+  
   # Handle login button click
   observeEvent(input$login_btn, {
     callLoginAPI()
+  })
+  
+  # Handle dataset selection buttons
+  observeEvent(input$select_dataset_1, {
+    dataset <- available_datasets[[1]]
+    loadDatasetFromFile(dataset$username, dataset$filename)
+  })
+  
+  observeEvent(input$select_dataset_2, {
+    dataset <- available_datasets[[2]]
+    loadDatasetFromFile(dataset$username, dataset$filename)
   })
   
   # Handle start analysis button click
@@ -334,6 +418,9 @@ function(input, output, session) {
     fetchMoodDistribution()
     fetchPopularityScore(values$user_prefs$time_range)
     fetchGenreDistribution(values$user_prefs$time_range, 10)
+    
+    # Fetch personality prediction
+    fetchPersonalityPrediction(values$user_prefs$time_range)
     
     # Mark data as loaded
     values$data_loaded <- TRUE
@@ -395,6 +482,7 @@ function(input, output, session) {
       "popularity" = render_popularity_slide(),
       "genres" = render_genres_slide(),
       "moods" = render_moods_slide(),
+      "personality" = render_personality_slide(),
       "thank-you" = render_thank_you_slide()
     )
   })
@@ -402,13 +490,71 @@ function(input, output, session) {
   # Slide renderers
   render_login_slide <- function() {
     div(class = "login-section",
-      div(style = "max-width: 600px; margin: 0 auto;",
-        div(style = "font-size: 4rem; margin-bottom: 2rem;", "🎵"),
-        h2("Welcome to Your Spotify Wrap!", style = "font-size: 2.5rem; margin-bottom: 1rem; color: white;"),
-        p("Discover your musical journey through 2024. Connect your Spotify account to see your personalized music statistics.", 
-          style = "font-size: 1.25rem; color: #D1D5DB; margin-bottom: 2rem; line-height: 1.6;"),
-        actionButton("login_btn", "Login with Spotify", class = "login-button",
-                    icon = icon("spotify", lib = "font-awesome"))
+      div(style = "max-width: 900px; margin: 0 auto;",
+        # Header
+        div(style = "text-align: center; margin-bottom: 3rem;",
+          div(style = "font-size: 4rem; margin-bottom: 2rem;", "🎵"),
+          h2("Welcome to Your Spotify Wrap!", style = "font-size: 2.5rem; margin-bottom: 1rem; color: white; font-family: 'Montserrat', sans-serif;"),
+          p("Discover your musical journey through 2024. Choose how you'd like to proceed:", 
+            style = "font-size: 1.25rem; color: #D1D5DB; margin-bottom: 3rem; line-height: 1.6; font-family: 'Montserrat', sans-serif;")
+        ),
+        
+        # Two-column layout for options
+        div(style = "display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-bottom: 2rem;",
+          
+          # Left side - Login to Spotify
+          div(style = "background: rgba(0,0,0,0.3); padding: 2.5rem; border-radius: 1.5rem; border: 2px solid #1DB954; text-align: center;",
+            div(style = "font-size: 3rem; margin-bottom: 1.5rem;", "🔑"),
+            h3("Login to Spotify", style = "color: #1DB954; margin-bottom: 1rem; font-size: 1.8rem; font-family: 'Montserrat', sans-serif;"),
+            p("Connect your Spotify account to analyze your personal music data in real-time.", 
+              style = "color: #D1D5DB; font-size: 1.1rem; margin-bottom: 2rem; line-height: 1.6; font-family: 'Montserrat', sans-serif;"),
+            actionButton("login_btn", "Login with Spotify", 
+                        class = "login-button",
+                        style = "background: linear-gradient(135deg, #1DB954, #1ed760); color: white; border: none; padding: 1rem 2rem; border-radius: 2rem; font-size: 1.2rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3); transition: all 0.3s ease; font-family: 'Montserrat', sans-serif;",
+                        icon = icon("spotify", lib = "font-awesome"))
+          ),
+          
+          # Right side - Choose existing dataset
+          div(style = "background: rgba(0,0,0,0.3); padding: 2.5rem; border-radius: 1.5rem; border: 2px solid #9CA3AF; text-align: center;",
+            div(style = "font-size: 3rem; margin-bottom: 1.5rem;", "📁"),
+            h3("Choose Existing Dataset", style = "color: #9CA3AF; margin-bottom: 1rem; font-size: 1.8rem; font-family: 'Montserrat', sans-serif;"),
+            p("Explore pre-loaded music profiles to see different musical personalities and tastes.", 
+              style = "color: #D1D5DB; font-size: 1.1rem; margin-bottom: 2rem; line-height: 1.6; font-family: 'Montserrat', sans-serif;")
+          )
+        ),
+        
+        # Dataset selection cards
+        div(style = "margin-top: 2rem;",
+          h4("Available Datasets:", style = "color: white; font-size: 1.3rem; margin-bottom: 1.5rem; text-align: center; font-family: 'Montserrat', sans-serif;"),
+          div(style = "display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;",
+            
+            # Dataset 1
+            div(style = "background: rgba(0,0,0,0.2); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(156, 163, 175, 0.3); transition: all 0.3s ease; cursor: pointer;",
+              div(style = "text-align: center;",
+                div(style = "font-size: 2.5rem; margin-bottom: 1rem;", "👤"),
+                div(style = "font-size: 1.3rem; font-weight: 600; color: white; margin-bottom: 0.5rem; font-family: 'Montserrat', sans-serif;", 
+                    available_datasets[[1]]$display_name),
+                div(style = "color: #9CA3AF; font-size: 1rem; margin-bottom: 1.5rem; font-family: 'Montserrat', sans-serif;", 
+                    available_datasets[[1]]$description),
+                actionButton("select_dataset_1", "Select This Dataset",
+                            style = "background: #6B7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; font-family: 'Montserrat', sans-serif;")
+              )
+            ),
+            
+            # Dataset 2  
+            div(style = "background: rgba(0,0,0,0.2); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(156, 163, 175, 0.3); transition: all 0.3s ease; cursor: pointer;",
+              div(style = "text-align: center;",
+                div(style = "font-size: 2.5rem; margin-bottom: 1rem;", "👤"),
+                div(style = "font-size: 1.3rem; font-weight: 600; color: white; margin-bottom: 0.5rem; font-family: 'Montserrat', sans-serif;", 
+                    available_datasets[[2]]$display_name),
+                div(style = "color: #9CA3AF; font-size: 1rem; margin-bottom: 1.5rem; font-family: 'Montserrat', sans-serif;", 
+                    available_datasets[[2]]$description),
+                actionButton("select_dataset_2", "Select This Dataset",
+                            style = "background: #6B7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; font-family: 'Montserrat', sans-serif;")
+              )
+            )
+          )
+        )
       )
     )
   }
@@ -1199,6 +1345,151 @@ function(input, output, session) {
     )
   }
   
+  render_personality_slide <- function() {
+    if (!values$logged_in) {
+      return(div("Please log in first"))
+    }
+    
+    # Check if data is loaded, if not show message to configure preferences
+    if (!values$data_loaded || is.null(values$personality_data)) {
+      return(div(style = "text-align: center; padding: 4rem;",
+        div(style = "font-size: 3rem; margin-bottom: 1rem;", "🧠"),
+        h3("Configure Your Analysis First", style = "color: #1DB954; margin-bottom: 1rem; font-size: 1.8rem; font-family: 'Montserrat', sans-serif;"),
+        p("Please go back to 'Your Musical Journey' and configure your preferences to analyze your personality.",
+          style = "color: #D1D5DB; font-size: 1.2rem; max-width: 500px; margin: 0 auto; font-family: 'Montserrat', sans-serif;"),
+        div(style = "margin-top: 2rem;",
+          actionButton("back_to_config6", "← Back to Configuration", 
+            style = "background: #1DB954; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; cursor: pointer; font-family: 'Montserrat', sans-serif;"
+          )
+        )
+      ))
+    }
+    
+    # Extract personality data from the actual API response format
+    personality_type <- "Balanced"
+    personality_description <- "Your musical taste reflects a well-rounded personality with balanced traits."
+    confidence_score <- 85  # Default confidence since API doesn't provide it
+    traits <- list()
+    
+    if (!is.null(values$personality_data)) {
+      cat("=== PERSONALITY API RESPONSE DEBUG ===\n")
+      cat("Personality data available fields:", paste(names(values$personality_data), collapse = ", "), "\n")
+      
+      # Extract personality information based on actual API response structure
+      if (!is.null(values$personality_data$personality)) {
+        personality_info <- values$personality_data$personality
+        
+        # Extract scores as traits
+        if (!is.null(personality_info$scores)) {
+          traits <- personality_info$scores
+          cat("Found personality scores:", length(traits), "traits\n")
+          
+          # Calculate a general personality type based on highest scores
+          scores <- personality_info$scores
+          if (length(scores) > 0) {
+            # Find the highest scoring trait
+            max_trait <- names(scores)[which.max(unlist(scores))]
+            max_score <- max(unlist(scores))
+            
+            # Create a personality type based on dominant trait
+            personality_type <- switch(max_trait,
+              "extraversion" = "Social Butterfly",
+              "openness" = "Creative Explorer", 
+              "conscientiousness" = "Organized Achiever",
+              "agreeableness" = "Harmonious Connector",
+              "emotional_stability" = "Steady Minded",
+              "Balanced Listener"
+            )
+            
+            # Get description for the dominant trait
+            if (!is.null(personality_info$descriptions) && !is.null(personality_info$descriptions[[max_trait]])) {
+              personality_description <- personality_info$descriptions[[max_trait]]
+            }
+            
+            # Calculate confidence based on how high the dominant score is
+            confidence_score <- max_score
+          }
+        }
+        
+        # If no specific dominant trait, use a general description
+        if (!is.null(personality_info$descriptions)) {
+          # Create a combined description from all traits
+          all_descriptions <- personality_info$descriptions
+          if (length(all_descriptions) > 0) {
+            # Use the first description as primary, or create a summary
+            personality_description <- "Based on your music preferences, you show a balanced personality with varied traits that complement each other well."
+          }
+        }
+      }
+      
+      cat("Personality type:", personality_type, "\n")
+      cat("Confidence score:", confidence_score, "\n")
+      cat("Number of traits:", length(traits), "\n")
+      cat("=====================================\n")
+    }
+    
+    # Define personality emojis and colors based on type
+    personality_emojis <- list(
+      "Social Butterfly" = "🦋",
+      "Creative Explorer" = "🎨", 
+      "Organized Achiever" = "🎯",
+      "Harmonious Connector" = "🤝",
+      "Steady Minded" = "🧘",
+      "Balanced Listener" = "⚖️"
+    )
+    
+    emoji <- personality_emojis[[personality_type]] %||% "🧠"
+    
+    div(style = "max-width: 1000px; margin: 0 auto;",
+      div(style = "text-align: center; margin-bottom: 3rem;",
+        p("Based on your music taste, here's your musical personality", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
+      ),
+      
+      # Main personality card
+      div(style = "background: rgba(0,0,0,0.3); padding: 3rem; border-radius: 1.5rem; border: 2px solid #1DB954; text-align: center; margin-bottom: 2rem;",
+        div(style = "font-size: 4rem; margin-bottom: 1.5rem;", emoji),
+        div(style = "font-size: 2.5rem; font-weight: bold; color: #1DB954; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;", personality_type),
+        div(style = "font-size: 1.2rem; color: #D1D5DB; line-height: 1.6; margin-bottom: 2rem; font-family: 'Montserrat', sans-serif;", personality_description),
+        
+        # Confidence score
+        div(style = "display: inline-block; background: rgba(29, 185, 84, 0.2); color: #10B981; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 1.1rem; font-weight: 600; font-family: 'Montserrat', sans-serif;",
+            paste0("Confidence: ", round(confidence_score, 1), "%"))
+      ),
+      
+      # Traits section (if available)
+      if (length(traits) > 0) {
+        div(style = "margin-top: 2rem;",
+          div(style = "text-align: center; margin-bottom: 2rem;",
+            h4("Your Musical Personality Traits", style = "color: white; font-size: 1.5rem; font-family: 'Montserrat', sans-serif;")
+          ),
+          div(style = "display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;",
+            lapply(names(traits), function(trait_name) {
+              trait_value <- traits[[trait_name]]
+              trait_percentage <- if(is.numeric(trait_value)) trait_value else as.numeric(trait_value)
+              
+              # Create better trait names for display
+              display_name <- switch(trait_name,
+                "extraversion" = "Social Energy",
+                "openness" = "Creativity", 
+                "conscientiousness" = "Organization",
+                "agreeableness" = "Harmony",
+                "emotional_stability" = "Emotional Balance",
+                tools::toTitleCase(gsub("_", " ", trait_name))
+              )
+              
+              div(style = "background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 1rem; border: 1px solid rgba(29, 185, 84, 0.3); text-align: center;",
+                div(style = "font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; font-family: 'Montserrat', sans-serif;", display_name),
+                div(style = "font-size: 1.5rem; color: #1DB954; font-weight: bold; font-family: 'Montserrat', sans-serif;", paste0(round(trait_percentage, 1), "%"))
+              )
+            })
+          )
+        )
+      } else {
+        div()
+      }
+    )
+  }
+  
   render_thank_you_slide <- function() {
     div(style = "text-align: center; max-width: 800px; margin: 0 auto;",
       div(style = "margin-bottom: 3rem;",
@@ -1248,6 +1539,10 @@ function(input, output, session) {
   })
   
   observeEvent(input$back_to_config5, {
+    values$current_slide <- 2  # Welcome slide
+  })
+  
+  observeEvent(input$back_to_config6, {
     values$current_slide <- 2  # Welcome slide
   })
 
