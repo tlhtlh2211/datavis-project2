@@ -22780,7 +22780,7 @@
         "before": "1748368220317"
       },
       "limit": 50,
-      "href": "https://api.spotify.com/v1/me/player/recently-played?before=1748873299873&limit=50"
+      "href": "https://api.spotify.com/v1/me/player/recently-played?before=1748879522256&limit=50"
     }
   },
   {
@@ -25976,17 +25976,17 @@
           "images": [
             {
               "height": 640,
-              "url": "https://i.scdn.co/image/ab6761610000e5eb6a5bff9f9278d4eea13bb67e",
+              "url": "https://i.scdn.co/image/ab6761610000e5eb51dfdac248da65a860963b68",
               "width": 640
             },
             {
               "height": 320,
-              "url": "https://i.scdn.co/image/ab676161000051746a5bff9f9278d4eea13bb67e",
+              "url": "https://i.scdn.co/image/ab6761610000517451dfdac248da65a860963b68",
               "width": 320
             },
             {
               "height": 160,
-              "url": "https://i.scdn.co/image/ab6761610000f1786a5bff9f9278d4eea13bb67e",
+              "url": "https://i.scdn.co/image/ab6761610000f17851dfdac248da65a860963b68",
               "width": 160
             }
           ],

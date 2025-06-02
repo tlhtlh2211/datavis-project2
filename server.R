@@ -94,56 +94,27 @@ function(input, output, session) {
   # Function to call login API and get user credentials
   callLoginAPI <- function() {
     tryCatch({
-      # COMMENTED OUT: Original API call for later restoration
-      # response <- GET("http://127.0.0.1:5000/login")
-      # 
-      # if (status_code(response) == 200) {
-      #   raw_content <- content(response, "text", encoding = "UTF-8")
-      #   api_response <- fromJSON(raw_content, simplifyVector = FALSE)
-      #   
-      #   if ("json_file" %in% names(api_response) && "username" %in% names(api_response)) {
-      #     values$username <- api_response$username
-      #     values$filename <- api_response$json_file
-      #     values$logged_in <- TRUE
-      #     
-      #     # Fetch user profile only
-      #     fetchUserProfile()
-      #     
-      #     showNotification("Successfully logged in to Spotify!", type = "message")
-      #   } else {
-      #     showNotification("Login failed - unexpected response format", type = "error")
-      #   }
-      # } else {
-      #   showNotification(paste("Login failed - status code:", status_code(response)), type = "error")
-      # }
+      # Call the actual Spotify login API
+      response <- GET("http://127.0.0.1:5000/login")
       
-      # TEMPORARY: Direct file loading for login setup only
-      cat("Setting up login credentials...\n")
-      
-      # Set login status and basic credentials
-      values$logged_in <- TRUE
-      values$username <- "m36i6tkbyxen3w6euott3ufhi"
-      values$filename <- "m36i6tkbyxen3w6euott3ufhi_spotify.json"
-      
-      # Load only user profile data for the welcome slide
-      json_file_path <- "api/data/m36i6tkbyxen3w6euott3ufhi_spotify.json"
-      
-      if (file.exists(json_file_path)) {
-        cat("Reading user profile from file for setup...\n")
-        spotify_data <- fromJSON(json_file_path, simplifyVector = FALSE)
+      if (status_code(response) == 200) {
+        raw_content <- content(response, "text", encoding = "UTF-8")
+        api_response <- fromJSON(raw_content, simplifyVector = FALSE)
         
-        # Load only user profile data
-        for (item in spotify_data) {
-          if (item$step == "current_user") {
-            values$current_user <- item$data
-            cat("Loaded user profile data for welcome slide\n")
-            break
-          }
+        if ("json_file" %in% names(api_response) && "username" %in% names(api_response)) {
+          values$username <- api_response$username
+          values$filename <- api_response$json_file
+          values$logged_in <- TRUE
+          
+          # Fetch user profile only
+          fetchUserProfile()
+          
+          showNotification("Successfully logged in to Spotify!", type = "message")
+        } else {
+          showNotification("Login failed - unexpected response format", type = "error")
         }
-        
-        showNotification("Successfully logged in! Please configure your preferences.", type = "message")
       } else {
-        showNotification("Data file not found!", type = "error")
+        showNotification(paste("Login failed - status code:", status_code(response)), type = "error")
       }
     }, error = function(e) {
       showNotification(paste("Error logging in:", e$message), type = "error")
@@ -162,8 +133,16 @@ function(input, output, session) {
       response <- GET(url)
       
       if (status_code(response) == 200) {
-        values$current_user <- fromJSON(content(response, "text", encoding = "UTF-8"))
+        # Parse JSON without simplifying vectors to preserve list structure
+        values$current_user <- fromJSON(content(response, "text", encoding = "UTF-8"), simplifyVector = FALSE)
         cat("User profile fetched from API\n")
+        
+        # Debug the structure
+        cat("API Profile structure - display_name:", values$current_user$display_name %||% "NULL", "\n")
+        if (!is.null(values$current_user$images)) {
+          cat("API Profile - images class:", class(values$current_user$images), "\n")
+          cat("API Profile - images length:", length(values$current_user$images), "\n")
+        }
       }
     }, error = function(e) {
       cat("Error fetching user profile:", e$message, "\n")
@@ -278,7 +257,7 @@ function(input, output, session) {
       response <- GET(url)
       
       if (status_code(response) == 200) {
-        values$mood_data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+        values$mood_data <- fromJSON(content(response, "text", encoding = "UTF-8"), simplifyVector = FALSE)
         cat("Mood distribution data fetched\n")
       }
     }, error = function(e) {
@@ -297,7 +276,7 @@ function(input, output, session) {
       response <- GET(url)
       
       if (status_code(response) == 200) {
-        values$popularity_data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+        values$popularity_data <- fromJSON(content(response, "text", encoding = "UTF-8"), simplifyVector = FALSE)
         cat("Popularity score data fetched\n")
       }
     }, error = function(e) {
@@ -316,7 +295,7 @@ function(input, output, session) {
       response <- GET(url)
       
       if (status_code(response) == 200) {
-        values$genre_data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+        values$genre_data <- fromJSON(content(response, "text", encoding = "UTF-8"), simplifyVector = FALSE)
         cat("Genre distribution data fetched\n")
       }
     }, error = function(e) {
@@ -335,7 +314,7 @@ function(input, output, session) {
       response <- GET(url)
       
       if (status_code(response) == 200) {
-        values$personality_data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+        values$personality_data <- fromJSON(content(response, "text", encoding = "UTF-8"), simplifyVector = FALSE)
         cat("Personality prediction data fetched\n")
       }
     }, error = function(e) {
