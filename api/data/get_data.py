@@ -5,16 +5,12 @@ from datetime import datetime, timedelta
 from collections import deque
 from spotipy.oauth2 import SpotifyOAuth
 import os
+from dotenv import load_dotenv
 
-def test_basic_call():
-    scope = "user-read-recently-played"
-    sp_oauth = SpotifyOAuth(scope=scope)
-    sp = spotipy.Spotify(auth_manager=sp_oauth)
-    try:
-        response = sp.current_user_recently_played(limit=1,before=1702377923123)
-        print(response)
-    except Exception as e:
-        print(f"API Error: {str(e)}")
+load_dotenv()
+client_id = os.getenv('SPOTIPY_CLIENT_ID')
+client_secret = os.getenv('SPOTIPY_CLIENT_SECRET')
+redirect_uri = os.getenv('SPOTIPY_REDIRECT_URI')
 
 def fetch_spotify_data_sequence():
     """
@@ -24,11 +20,10 @@ def fetch_spotify_data_sequence():
     """
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
         scope="user-read-recently-played user-top-read user-read-private user-library-read",
-        client_id='678b8f9bd6bd45f396cc637c5c6f04cf',
-        client_secret='a5cfde08167a452fac10887add179566',
-        redirect_uri='http://127.0.0.1:8000/callback'
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=redirect_uri
     ))
-    results = {}
     username = None
     json_filename = None
     try:
@@ -38,9 +33,9 @@ def fetch_spotify_data_sequence():
             user_data = sp.current_user()
             username = user_data.get('id', 'unknown_user')
             json_filename = f"{username}_spotify.json"
-            with open(json_filename, 'w') as f:
+            with open(f"data/{json_filename}", 'w') as f:
                 json.dump([], f)  # Start with empty list
-            with open(json_filename, 'r+') as f:
+            with open(f"data/{json_filename}", 'r+') as f:
                 data = json.load(f)
                 data.append({"step": "current_user", "data": user_data})
                 f.seek(0)
@@ -53,7 +48,7 @@ def fetch_spotify_data_sequence():
         try:
             now_ms = int(time.time() * 1000)
             recently_played = sp.current_user_recently_played(limit=50, before=now_ms)
-            with open(json_filename, 'r+') as f:
+            with open(f"data/{json_filename}", 'r+') as f:
                 data = json.load(f)
                 data.append({"step": "recently_played", "data": recently_played})
                 f.seek(0)
@@ -65,7 +60,7 @@ def fetch_spotify_data_sequence():
         # 3. Top artists short term
         try:
             top_artists_short = sp.current_user_top_artists(limit=50, offset=0, time_range='short_term')
-            with open(json_filename, 'r+') as f:
+            with open(f"data/{json_filename}", 'r+') as f:
                 data = json.load(f)
                 data.append({"step": "top_artists_short", "data": top_artists_short})
                 f.seek(0)
@@ -77,7 +72,7 @@ def fetch_spotify_data_sequence():
         # 4. Top artists medium term
         try:
             top_artists_medium = sp.current_user_top_artists(limit=50, offset=0, time_range='medium_term')
-            with open(json_filename, 'r+') as f:
+            with open(f"data/{json_filename}", 'r+') as f:
                 data = json.load(f)
                 data.append({"step": "top_artists_medium", "data": top_artists_medium})
                 f.seek(0)
@@ -89,7 +84,7 @@ def fetch_spotify_data_sequence():
         # 5. Top artists long term
         try:
             top_artists_long = sp.current_user_top_artists(limit=50, offset=0, time_range='long_term')
-            with open(json_filename, 'r+') as f:
+            with open(f"data/{json_filename}", 'r+') as f:
                 data = json.load(f)
                 data.append({"step": "top_artists_long", "data": top_artists_long})
                 f.seek(0)
@@ -101,7 +96,7 @@ def fetch_spotify_data_sequence():
         # 6. Top tracks short term
         try:
             top_tracks_short = sp.current_user_top_tracks(limit=50, offset=0, time_range='short_term')
-            with open(json_filename, 'r+') as f:
+            with open(f"data/{json_filename}", 'r+') as f:
                 data = json.load(f)
                 data.append({"step": "top_tracks_short", "data": top_tracks_short})
                 f.seek(0)
@@ -113,7 +108,7 @@ def fetch_spotify_data_sequence():
         # 7. Top tracks medium term
         try:
             top_tracks_medium = sp.current_user_top_tracks(limit=50, offset=0, time_range='medium_term')
-            with open(json_filename, 'r+') as f:
+            with open(f"data/{json_filename}", 'r+') as f:
                 data = json.load(f)
                 data.append({"step": "top_tracks_medium", "data": top_tracks_medium})
                 f.seek(0)
@@ -125,7 +120,7 @@ def fetch_spotify_data_sequence():
         # 8. Top tracks long term
         try:
             top_tracks_long = sp.current_user_top_tracks(limit=50, offset=0, time_range='long_term')
-            with open(json_filename, 'r+') as f:
+            with open(f"data/{json_filename}", 'r+') as f:
                 data = json.load(f)
                 data.append({"step": "top_tracks_long", "data": top_tracks_long})
                 f.seek(0)
@@ -137,7 +132,7 @@ def fetch_spotify_data_sequence():
         # 9. Saved tracks
         try:
             saved_tracks = sp.current_user_saved_tracks(limit=50, offset=0, market=None)
-            with open(json_filename, 'r+') as f:
+            with open(f"data/{json_filename}", 'r+') as f:
                 data = json.load(f)
                 data.append({"step": "saved_tracks", "data": saved_tracks})
                 f.seek(0)
@@ -150,8 +145,3 @@ def fetch_spotify_data_sequence():
         print("General error in fetch_spotify_data_sequence:", str(e))
     return {"username": username, "json_file": json_filename}
 
-if __name__ == "__main__":
-    #fetcher = SpotifyHistoryFetcher()
-    #fetcher.fetch_history()
-    test_basic_call()
-    print("History collection complete. Data saved to spotify_history.jsonl")
