@@ -2,7 +2,7 @@
 ## A Comprehensive Interactive Music Analytics Application
 
 **Course:** Data Visualization  
-**Authors:** Hai Tran Le, Samantha  
+**Authors:** Hai Tran Le, Samantha Morris
 **Date:** April 2025 
 
 ---
@@ -51,20 +51,45 @@ We stored this data in structured `JSON` format, containing the following compon
 | `top_tracks_long` | Same structure as `top_tracks_short`, but covers all-time listening history |
 
 
+### Overview of Our Application
+#### Slide 1 - Feature Selection
+Spotify Wrapped provides a general slideshow to its users, but does not allow them to select what they want analysed in real-time. For instance you can select the amount of artists, songs and time frame you want analysed, and go back to this initial page to change your prefernces at any point. In addition, it provides details about the User's profile picture, followers, country and subscription plan derived from the `JSON` file.
 
-### Novelty of Our Solution
+<img width="1505" alt="Screenshot 2025-06-03 at 5 06 41 pm" src="https://github.com/user-attachments/assets/2db02ecf-776e-437b-8e5e-384c53a8f9a9" />
 
-Our solution addresses the limitations of existing music analytics tools through several innovative approaches:
 
-1. **Real-time Personalization vs. Yearly Summaries**: Unlike Spotify's annual Wrapped, our application provides on-demand analysis with fresh data, allowing users to explore their current musical state rather than waiting for year-end reports.
+#### Slide 2 - Top Song
+This slide provides the information that every user cares about most. Their top most-played song! (and the artist of that song, album cover and album name). 
 
-2. **Advanced Mood and Personality Analysis**: We implement sophisticated algorithms that analyze audio features to predict musical personality types and emotional patterns, going beyond simple play count statistics.
+<img width="1501" alt="Screenshot 2025-06-03 at 5 08 08 pm" src="https://github.com/user-attachments/assets/11e16f00-e9fb-4fd8-9b5e-6e2f84211ea8" />
 
-3. **Interactive Visualizations vs. Static Reports**: Our application features dynamic, user-controlled visualizations that encourage exploration and discovery, contrasting with static image-based reports.
+#### Slide 3 - Top x Songs
+Provides a list of the user's x amount (selected on the features slide) of top songs ranked in order. The scrollable and interactive interface also includes their album cover, artists and popularity score all extracted from the `JSON` file. 
 
-4. **Dual Backend Architecture**: The innovative combination of R Shiny for statistical visualization and Python Flask for API integration creates a robust, scalable solution that leverages the strengths of both technologies.
+<img width="1512" alt="Screenshot 2025-06-03 at 5 12 28 pm" src="https://github.com/user-attachments/assets/91fe36b5-2c5c-45bb-a2df-893f3c588833" />
 
-5. **Narrative-Driven Experience**: Our 9-slide journey structure provides a cohesive storytelling experience that guides users through their musical personality discovery, rather than overwhelming them with disconnected dashboards.
+#### Slide 4 - Top Artist
+The user is shown their top artist, with the genre of their music and popularity score listed, also extracted from the `JSON` file. 
+
+<img width="1512" alt="Screenshot 2025-06-03 at 5 12 58 pm" src="https://github.com/user-attachments/assets/93fd11f4-cd41-432d-8912-5f42c2b58854" />
+
+#### Slide 5 - Top x Artists
+Provides a list of the user's x amount (selected on the features slide) of top artists ranked in order. The scrollable and interactive interface also includes their profile picture, genres, and popularity score all extracted from the `JSON` file. 
+
+<img width="1512" alt="Screenshot 2025-06-03 at 5 14 33 pm" src="https://github.com/user-attachments/assets/9d1837b1-9665-48ac-a8ff-dd4feda209fd" />
+
+#### Slide 6 - Music Taste Analysis 
+
+#### Slide 7 - Top Genre
+
+#### Slide 8 - Favourite Genres Ranked
+
+#### Slide 9 - 
+
+#### Slide 10 - Personality Analysis 
+
+#### Slide 11 - Personality Deep Dive 
+
 
 ---
 
