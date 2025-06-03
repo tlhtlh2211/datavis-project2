@@ -21,6 +21,7 @@ datavis-project2/
 │   ├── main.py            # Main Flask application
 │   ├── requirements.txt   # Python dependencies
 │   └── .env              # Environment variables (you need to create this)
+├── slides               # Slide R folder
 ├── server.R              # Shiny server logic
 ├── ui.R                  # Shiny user interface
 ├── www/                  # Static assets (CSS, images)

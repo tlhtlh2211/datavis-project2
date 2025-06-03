@@ -93,18 +93,26 @@ def classify_mood(features):
             return 'Atmospheric'  # Instrumental moderate tracks
         return 'Chill'
 
-def predict_personality(top_genres):
+def predict_personality(top_genres, audio_features=None, track_popularity_data=None):
     """
-    Advanced personality prediction based on music genres with sophisticated analysis.
+    Advanced personality prediction based on music genres and audio features with sophisticated analysis.
     
     Features:
     - Cultural and regional music influence analysis
     - Genre diversity and exploration metrics
     - Fuzzy genre matching and synonyms
     - Cross-genre interaction effects
+    - Audio features analysis (valence, energy, danceability, etc.)
+    - Track popularity and mainstream vs niche analysis
+    - Temporal patterns and consistency analysis
     - Confidence scoring based on data quality
     - Dynamic personality type classification
     - Nuanced trait descriptions
+    
+    Parameters:
+    - top_genres: List of (genre, weight) tuples from artist genres
+    - audio_features: List of Spotify audio features dictionaries (optional)
+    - track_popularity_data: List of track metadata including popularity scores (optional)
     
     Returns a comprehensive personality analysis dictionary.
     """
@@ -313,11 +321,290 @@ def predict_personality(top_genres):
         elif matched_genre in ["afrobeat", "reggae"]:
             cultural_regions.add("african")
     
+    # Analyze audio features if provided
+    audio_features_impact = {
+        "openness": 0,
+        "conscientiousness": 0, 
+        "extraversion": 0,
+        "agreeableness": 0,
+        "emotional_stability": 0
+    }
+    
+    audio_weight = 0
+    
+    if audio_features and len(audio_features) > 0:
+        # Calculate average audio features
+        avg_features = {}
+        feature_keys = ['valence', 'energy', 'danceability', 'acousticness', 
+                       'instrumentalness', 'tempo', 'loudness', 'speechiness']
+        
+        for key in feature_keys:
+            values = [f.get(key, 0) for f in audio_features if f and f.get(key) is not None]
+            avg_features[key] = sum(values) / len(values) if values else 0
+        
+        # Map audio features to personality traits
+        # High valence (positive music) -> higher agreeableness, extraversion
+        if avg_features['valence'] > 0.6:
+            audio_features_impact["agreeableness"] += 15
+            audio_features_impact["extraversion"] += 10
+        elif avg_features['valence'] < 0.4:
+            audio_features_impact["emotional_stability"] -= 10
+        
+        # High energy -> higher extraversion, lower emotional stability if extreme
+        if avg_features['energy'] > 0.7:
+            audio_features_impact["extraversion"] += 12
+            if avg_features['energy'] > 0.85:
+                audio_features_impact["emotional_stability"] -= 5
+        elif avg_features['energy'] < 0.3:
+            audio_features_impact["extraversion"] -= 8
+            audio_features_impact["emotional_stability"] += 5
+        
+        # High danceability -> higher extraversion, agreeableness
+        if avg_features['danceability'] > 0.7:
+            audio_features_impact["extraversion"] += 8
+            audio_features_impact["agreeableness"] += 5
+        
+        # High acousticness -> higher openness, emotional sensitivity
+        if avg_features['acousticness'] > 0.6:
+            audio_features_impact["openness"] += 10
+            audio_features_impact["emotional_stability"] += 8
+        
+        # High instrumentalness -> higher openness, conscientiousness
+        if avg_features['instrumentalness'] > 0.5:
+            audio_features_impact["openness"] += 12
+            audio_features_impact["conscientiousness"] += 5
+        
+        # Tempo analysis
+        if avg_features['tempo'] > 140:  # Fast tempo
+            audio_features_impact["extraversion"] += 6
+            audio_features_impact["conscientiousness"] -= 3
+        elif avg_features['tempo'] < 90:  # Slow tempo
+            audio_features_impact["openness"] += 5
+            audio_features_impact["emotional_stability"] += 5
+        
+        # Loudness analysis
+        if avg_features['loudness'] > -5:  # Very loud
+            audio_features_impact["extraversion"] += 5
+        elif avg_features['loudness'] < -15:  # Quiet
+            audio_features_impact["emotional_stability"] += 5
+        
+        # Speechiness (podcasts, rap, etc.)
+        if avg_features['speechiness'] > 0.33:
+            audio_features_impact["openness"] += 8
+            audio_features_impact["conscientiousness"] += 3
+        
+        # Calculate audio weight based on number of tracks analyzed
+        audio_weight = min(len(audio_features) / 20, 1.0) * 0.3  # Max 30% influence
+    
     # Normalize base traits
     if total_weight > 0:
         for trait in traits:
             traits[trait] = round(traits[trait] / total_weight)
         complexity_score = complexity_score / total_weight
+    
+    # Apply audio features impact with proper weighting
+    if audio_weight > 0:
+        for trait in traits:
+            audio_adjustment = audio_features_impact[trait] * audio_weight
+            traits[trait] = max(0, min(100, traits[trait] + audio_adjustment))
+            traits[trait] = round(traits[trait])
+    
+    # Advanced secondary analysis for more accurate scoring
+    secondary_adjustments = {
+        "openness": 0,
+        "conscientiousness": 0, 
+        "extraversion": 0,
+        "agreeableness": 0,
+        "emotional_stability": 0
+    }
+    
+    if audio_features and len(audio_features) > 0:
+        # Calculate advanced musical sophistication metrics
+        track_durations = [f.get('duration_ms', 0) for f in audio_features if f and f.get('duration_ms')]
+        avg_duration = sum(track_durations) / len(track_durations) if track_durations else 180000  # 3 min default
+        
+        # Musical complexity analysis
+        complexity_indicators = []
+        for f in audio_features:
+            if f:
+                # Complex music tends to have: low speechiness, variable tempo, high instrumentalness
+                complexity = (
+                    (1 - f.get('speechiness', 0)) * 0.3 +  # Less vocal = more complex
+                    f.get('instrumentalness', 0) * 0.4 +     # More instrumental = more complex
+                    (f.get('time_signature', 4) / 7) * 0.3   # Unusual time signatures = more complex
+                )
+                complexity_indicators.append(complexity)
+        
+        avg_complexity = sum(complexity_indicators) / len(complexity_indicators) if complexity_indicators else 0.3
+        
+        # Emotional range analysis (valence variance)
+        valences = [f.get('valence', 0.5) for f in audio_features if f and f.get('valence') is not None]
+        emotional_range = 0
+        if len(valences) > 1:
+            emotional_range = max(valences) - min(valences)
+        
+        # Energy consistency analysis
+        energies = [f.get('energy', 0.5) for f in audio_features if f and f.get('energy') is not None]
+        energy_variance = 0
+        if len(energies) > 1:
+            avg_energy = sum(energies) / len(energies)
+            energy_variance = sum((e - avg_energy) ** 2 for e in energies) / len(energies)
+        
+        # Apply sophisticated adjustments
+        
+        # OPENNESS: Higher for complex, varied, longer tracks
+        if avg_complexity > 0.6:
+            secondary_adjustments["openness"] += 8
+        if avg_duration > 240000:  # > 4 minutes
+            secondary_adjustments["openness"] += 5
+        if emotional_range > 0.6:  # Wide emotional range
+            secondary_adjustments["openness"] += 6
+        
+        # CONSCIENTIOUSNESS: Higher for consistent patterns, organized listening
+        if energy_variance < 0.05:  # Very consistent energy levels
+            secondary_adjustments["conscientiousness"] += 7
+        if emotional_range < 0.3:  # Consistent emotional preferences  
+            secondary_adjustments["conscientiousness"] += 5
+        
+        # EXTRAVERSION: Confirmed by social, energetic music characteristics
+        avg_danceability = sum(f.get('danceability', 0) for f in audio_features if f) / len(audio_features)
+        avg_loudness = sum(f.get('loudness', -10) for f in audio_features if f) / len(audio_features)
+        
+        if avg_danceability > 0.7:
+            secondary_adjustments["extraversion"] += 6
+        if avg_loudness > -8:  # Louder music
+            secondary_adjustments["extraversion"] += 4
+        
+        # AGREEABLENESS: Harmonious, positive music preferences
+        avg_valence = sum(f.get('valence', 0.5) for f in audio_features if f) / len(audio_features)
+        if avg_valence > 0.65:
+            secondary_adjustments["agreeableness"] += 8
+        if avg_complexity < 0.4:  # Accessible, non-challenging music
+            secondary_adjustments["agreeableness"] += 4
+        
+        # EMOTIONAL_STABILITY: Consistent, moderate characteristics
+        if energy_variance < 0.08:  # Consistent energy preference
+            secondary_adjustments["emotional_stability"] += 6
+        if 0.4 <= avg_valence <= 0.7:  # Moderate, stable emotional range
+            secondary_adjustments["emotional_stability"] += 5
+        if avg_complexity > 0.3 and avg_complexity < 0.7:  # Neither too simple nor too complex
+            secondary_adjustments["emotional_stability"] += 4
+    
+    # Analyze genre sophistication and diversity patterns
+    if len(matched_genres) > 0:
+        # Niche vs mainstream genre analysis
+        mainstream_genres = {'pop', 'rock', 'hip hop', 'country', 'r&b', 'dance pop', 'edm'}
+        niche_count = sum(1 for genre in matched_genres[:10] if genre not in mainstream_genres)
+        niche_ratio = niche_count / min(len(matched_genres), 10)
+        
+        if niche_ratio > 0.6:  # Mostly niche genres
+            secondary_adjustments["openness"] += 10
+            secondary_adjustments["conscientiousness"] -= 3  # Less conforming
+        elif niche_ratio < 0.2:  # Mostly mainstream
+            secondary_adjustments["agreeableness"] += 5
+            secondary_adjustments["extraversion"] += 3
+        
+        # Genre consistency analysis
+        if genre_diversity < 0.3:  # Very focused taste
+            secondary_adjustments["conscientiousness"] += 6
+            secondary_adjustments["emotional_stability"] += 4
+        elif genre_diversity > 0.8:  # Very diverse taste
+            secondary_adjustments["openness"] += 8
+            secondary_adjustments["extraversion"] += 4
+    
+    # Analyze track popularity patterns and temporal data
+    if track_popularity_data and len(track_popularity_data) > 0:
+        popularities = [track.get('popularity', 0) for track in track_popularity_data]
+        avg_popularity = sum(popularities) / len(popularities)
+        popularity_variance = sum((p - avg_popularity) ** 2 for p in popularities) / len(popularities)
+        
+        # Mainstream vs niche preference analysis
+        mainstream_count = sum(1 for p in popularities if p > 70)  # Very popular tracks
+        niche_count = sum(1 for p in popularities if p < 30)       # Less popular tracks
+        
+        mainstream_ratio = mainstream_count / len(popularities)
+        niche_ratio = niche_count / len(popularities)
+        
+        # Track duration patterns
+        durations = [track.get('duration_ms', 0) for track in track_popularity_data if track.get('duration_ms')]
+        avg_track_duration = sum(durations) / len(durations) if durations else 180000
+        
+        # Explicit content preference
+        explicit_count = sum(1 for track in track_popularity_data if track.get('explicit', False))
+        explicit_ratio = explicit_count / len(track_popularity_data)
+        
+        # Release date analysis (preference for newer vs older music)
+        current_year = 2024
+        release_years = []
+        for track in track_popularity_data:
+            release_date = track.get('release_date', '')
+            if release_date and len(release_date) >= 4:
+                try:
+                    year = int(release_date[:4])
+                    release_years.append(year)
+                except:
+                    pass
+        
+        if release_years:
+            avg_release_year = sum(release_years) / len(release_years)
+            year_variance = sum((y - avg_release_year) ** 2 for y in release_years) / len(release_years)
+            recency_preference = (avg_release_year - 1950) / (current_year - 1950)  # 0-1 scale
+        else:
+            year_variance = 0
+            recency_preference = 0.8  # Default to somewhat recent
+        
+        # Apply popularity-based adjustments
+        
+        # OPENNESS: Higher for niche music, varied eras, longer tracks
+        if niche_ratio > 0.4:  # Significant niche preference
+            secondary_adjustments["openness"] += 12
+        if avg_track_duration > 300000:  # > 5 minutes average
+            secondary_adjustments["openness"] += 6
+        if year_variance > 100:  # Wide variety of release years
+            secondary_adjustments["openness"] += 5
+        if recency_preference < 0.6:  # Prefers older music
+            secondary_adjustments["openness"] += 7
+        
+        # CONSCIENTIOUSNESS: Higher for consistent popularity levels, moderate duration
+        if popularity_variance < 200:  # Consistent popularity preferences
+            secondary_adjustments["conscientiousness"] += 8
+        if 150000 <= avg_track_duration <= 250000:  # Standard track lengths
+            secondary_adjustments["conscientiousness"] += 4
+        if explicit_ratio < 0.1:  # Low explicit content
+            secondary_adjustments["conscientiousness"] += 3
+        
+        # EXTRAVERSION: Higher for mainstream, popular, energetic music
+        if mainstream_ratio > 0.6:  # Prefers popular music
+            secondary_adjustments["extraversion"] += 10
+        if avg_popularity > 60:  # Generally popular taste
+            secondary_adjustments["extraversion"] += 6
+        if recency_preference > 0.8:  # Prefers very recent music
+            secondary_adjustments["extraversion"] += 4
+        
+        # AGREEABLENESS: Higher for mainstream, accessible music, low explicit
+        if mainstream_ratio > 0.5:
+            secondary_adjustments["agreeableness"] += 8
+        if explicit_ratio < 0.15:  # Low explicit content preference
+            secondary_adjustments["agreeableness"] += 6
+        if 40 <= avg_popularity <= 80:  # Moderately popular, accessible music
+            secondary_adjustments["agreeableness"] += 5
+        
+        # EMOTIONAL_STABILITY: Higher for consistent patterns, moderate preferences
+        if popularity_variance < 300:  # Consistent popularity preference
+            secondary_adjustments["emotional_stability"] += 7
+        if year_variance < 50:  # Consistent era preference
+            secondary_adjustments["emotional_stability"] += 5
+        if 0.3 <= recency_preference <= 0.9:  # Balanced old vs new preference
+            secondary_adjustments["emotional_stability"] += 4
+        if explicit_ratio < 0.2:  # Moderate explicit content
+            secondary_adjustments["emotional_stability"] += 3
+    
+    # Apply secondary adjustments with reduced weight
+    secondary_weight = 0.15  # 15% additional influence
+    for trait in traits:
+        adjustment = secondary_adjustments[trait] * secondary_weight
+        traits[trait] = max(0, min(100, traits[trait] + adjustment))
+        traits[trait] = round(traits[trait])
     
     # Calculate diversity metrics
     unique_genres = len(set(matched_genres))
@@ -421,30 +708,52 @@ def predict_personality(top_genres):
             }
         }
         
+        # Trait-specific contextual additions based on musical analysis
+        trait_specific_contexts = {
+            "openness": {
+                "high_diversity": "with a strong appetite for musical exploration and genre experimentation",
+                "high_complexity": "drawn to sophisticated and avant-garde musical expressions",
+                "high_cultural": "showing deep appreciation for global musical traditions"
+            },
+            "conscientiousness": {
+                "high_diversity": "with methodical exploration of different musical styles",
+                "high_complexity": "appreciating structured and technically complex compositions",
+                "high_cultural": "systematically engaging with diverse cultural music forms"
+            },
+            "extraversion": {
+                "high_diversity": "energized by a wide range of social and danceable music",
+                "high_complexity": "enjoying both mainstream hits and sophisticated musical arrangements",
+                "high_cultural": "connecting through music across different cultural communities"
+            },
+            "agreeableness": {
+                "high_diversity": "finding harmony and connection through diverse musical experiences",
+                "high_complexity": "appreciating both accessible melodies and nuanced emotional expressions",
+                "high_cultural": "embracing music as a bridge between different cultures and perspectives"
+            },
+            "emotional_stability": {
+                "high_diversity": "maintaining emotional balance through varied musical moods and styles",
+                "high_complexity": "comfortable with both challenging and soothing musical experiences",
+                "high_cultural": "finding emotional resonance in music from different cultural backgrounds"
+            }
+        }
+        
         level = "high" if score >= 65 else "medium" if score >= 45 else "low"
         base_desc = base_descriptions[trait_name][level]
         
-        # Add contextual modifiers
-        modifiers = []
+        # Add trait-specific contextual modifier (only one per trait to avoid repetition)
+        trait_contexts = trait_specific_contexts.get(trait_name, {})
+        contextual_addition = None
         
-        if context["diversity"] > 0.7:
-            modifiers.append("with a strong appreciation for variety and exploration")
-        elif context["diversity"] < 0.3:
-            modifiers.append("with focused and consistent preferences")
-            
-        if context["complexity"] > 0.7:
-            modifiers.append("drawn to sophisticated and nuanced expressions")
-        elif context["complexity"] < 0.3:
-            modifiers.append("preferring clear and accessible forms")
-            
-        if context["cultural_diversity"] > 0.5:
-            modifiers.append("showing global cultural appreciation")
-        elif context["cultural_diversity"] > 0.3:
-            modifiers.append("with cross-cultural interests")
-            
-        modifier_text = ". ".join(modifiers)
-        if modifier_text:
-            return f"You are {base_desc}, {modifier_text.lower()}."
+        # Priority: complexity > cultural > diversity (to avoid multiple modifiers)
+        if context["complexity"] > 0.7 and "high_complexity" in trait_contexts:
+            contextual_addition = trait_contexts["high_complexity"]
+        elif context["cultural_diversity"] > 0.4 and "high_cultural" in trait_contexts:
+            contextual_addition = trait_contexts["high_cultural"]
+        elif context["diversity"] > 0.6 and "high_diversity" in trait_contexts:
+            contextual_addition = trait_contexts["high_diversity"]
+        
+        if contextual_addition:
+            return f"You are {base_desc}, {contextual_addition}."
         else:
             return f"You are {base_desc}."
     
@@ -453,7 +762,12 @@ def predict_personality(top_genres):
     data_quality = min(len(top_genres) / 10, 1.0)  # Ideal: 10+ genres
     genre_weight_distribution = 1.0 - (max(weight for _, weight in top_genres) / sum(weight for _, weight in top_genres)) if top_genres else 0.5
     
-    overall_confidence = (avg_match_confidence * 0.4 + data_quality * 0.3 + genre_weight_distribution * 0.3) * 100
+    # Factor in audio features availability for confidence
+    audio_features_bonus = 0
+    if audio_features and len(audio_features) > 0:
+        audio_features_bonus = min(len(audio_features) / 20, 1.0) * 0.2  # Up to 20% bonus
+    
+    overall_confidence = (avg_match_confidence * 0.3 + data_quality * 0.25 + genre_weight_distribution * 0.25 + audio_features_bonus * 0.2) * 100
     
     # Generate context for descriptions
     context = {
@@ -470,6 +784,16 @@ def predict_personality(top_genres):
     for trait_name in traits:
         descriptions[trait_name] = generate_dynamic_description(trait_name, traits[trait_name], context)
     
+    # Prepare audio features summary
+    audio_features_summary = None
+    if audio_features and len(audio_features) > 0:
+        avg_features = {}
+        feature_keys = ['valence', 'energy', 'danceability', 'acousticness', 'instrumentalness', 'tempo']
+        for key in feature_keys:
+            values = [f.get(key, 0) for f in audio_features if f and f.get(key) is not None]
+            avg_features[key] = round(sum(values) / len(values), 3) if values else 0
+        audio_features_summary = avg_features
+    
     return {
         "scores": traits,
         "descriptions": descriptions,
@@ -481,6 +805,9 @@ def predict_personality(top_genres):
             "complexity_score": round(complexity_score, 3),
             "cultural_regions": list(cultural_regions),
             "matched_genres": matched_genres[:5],  # Top 5 for reference
-            "total_genres_analyzed": len(top_genres)
+            "total_genres_analyzed": len(top_genres),
+            "audio_features_analyzed": len(audio_features) if audio_features else 0,
+            "audio_features_weight": round(audio_weight, 3) if audio_weight > 0 else 0,
+            "audio_features_summary": audio_features_summary
         }
     }

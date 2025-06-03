@@ -235,12 +235,16 @@ def get_personality_prediction():
     if time_range not in ['short_term', 'medium_term', 'long_term']:
         return jsonify({"error": "Invalid time_range"}), 400
     
-    # First, get genre distribution data
+    # Get genre distribution data from top artists
     step = f"top_artists_{time_range.split('_')[0]}" if time_range != 'long_term' else "top_artists_long"
     top_artists = get_from_file(f"data/{filename}", step)
     
     if top_artists is None:
         return jsonify({"error": "Top artists data not found or file missing"}), 404
+    
+    # Get top tracks for audio features analysis
+    track_step = f"top_tracks_{time_range.split('_')[0]}" if time_range != 'long_term' else "top_tracks_long"
+    top_tracks = get_from_file(f"data/{filename}", track_step)
     
     # Collect all genres from top artists with weighting
     genre_counts = Counter()
@@ -257,14 +261,50 @@ def get_personality_prediction():
     # Get top genres with their counts
     top_genres = genre_counts.most_common(15)  # Use top 15 genres for prediction
     
-    # Predict personality based on genres
-    personality = predict_personality(top_genres)
+    # Fetch audio features for top tracks
+    audio_features = None
+    track_popularity_data = None
+    
+    if top_tracks and 'items' in top_tracks:
+        track_items = top_tracks['items'][:20]  # Analyze top 20 tracks max
+        track_ids = [track['id'] for track in track_items if track.get('id')]
+        
+        # Extract track popularity data for additional analysis
+        track_popularity_data = []
+        for track in track_items:
+            if track.get('id'):
+                track_info = {
+                    'id': track['id'],
+                    'popularity': track.get('popularity', 0),
+                    'duration_ms': track.get('duration_ms', 0),
+                    'explicit': track.get('explicit', False),
+                    'release_date': track.get('album', {}).get('release_date', ''),
+                    'artist_followers': track.get('artists', [{}])[0].get('followers', {}).get('total', 0) if track.get('artists') else 0
+                }
+                track_popularity_data.append(track_info)
+        
+        if track_ids:
+            # Join track IDs with commas for batch request
+            ids_param = ','.join(track_ids)
+            try:
+                audio_features_response = analyze_track_features(ids_param)
+                if isinstance(audio_features_response, dict) and 'audio_features' in audio_features_response:
+                    audio_features = audio_features_response['audio_features']
+                    # Filter out None values (tracks without features)
+                    audio_features = [f for f in audio_features if f is not None]
+            except Exception as e:
+                print(f"Error fetching audio features: {e}")
+                audio_features = None
+    
+    # Predict personality based on genres, audio features, and additional data
+    personality = predict_personality(top_genres, audio_features, track_popularity_data)
     
     # Add the top genres to the response for reference
     result = {
         'username': username,
         'time_range': time_range,
         'top_genres': [genre for genre, _ in top_genres[:10]],  # Just include names of top 10
+        'audio_features_count': len(audio_features) if audio_features else 0,
         'personality': personality
     }
     
