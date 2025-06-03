@@ -3,7 +3,7 @@
 
 **Course:** Data Visualization  
 **Authors:** Hai Tran Le, Samantha  
-**Date:** December 2024  
+**Date:** April 2025 
 
 ---
 
