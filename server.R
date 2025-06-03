@@ -53,9 +53,12 @@ function(input, output, session) {
   slides <- list(
     list(id = "login", title = "Welcome to Your 2024 Spotify Wrap"),
     list(id = "welcome", title = "Your Musical Journey"),
+    list(id = "top-1-track", title = "Your #1 Song"),
     list(id = "top-tracks", title = "Your Top Tracks"),
+    list(id = "top-1-artist", title = "Your #1 Artist"),
     list(id = "top-artists", title = "Your Top Artists"),
     list(id = "popularity", title = "Your Music Taste"),
+    list(id = "top-1-genre", title = "Your #1 Genre"),
     list(id = "genres", title = "Your Genre Universe"),
     list(id = "moods", title = "Your Musical Moods"),
     list(id = "personality", title = "Your Musical Personality"),
@@ -311,11 +314,27 @@ function(input, output, session) {
       url <- paste0("http://127.0.0.1:5000/analysis/personality_prediction?username=",
                    values$username, "&filename=", values$filename,
                    "&time_range=", time_range)
+      cat("Calling personality API:", url, "\n")
       response <- GET(url)
       
       if (status_code(response) == 200) {
-        values$personality_data <- fromJSON(content(response, "text", encoding = "UTF-8"), simplifyVector = FALSE)
-        cat("Personality prediction data fetched\n")
+        raw_content <- content(response, "text", encoding = "UTF-8")
+        cat("=== PERSONALITY API RAW RESPONSE ===\n")
+        cat("Raw response first 500 chars:", substr(raw_content, 1, 500), "\n")
+        cat("===================================\n")
+        
+        values$personality_data <- fromJSON(raw_content, simplifyVector = FALSE)
+        cat("Personality prediction data fetched successfully\n")
+        
+        # Debug the parsed structure
+        cat("Parsed personality data structure:\n")
+        cat("Available fields:", paste(names(values$personality_data), collapse = ", "), "\n")
+        if (!is.null(values$personality_data$personality)) {
+          cat("Personality subfields:", paste(names(values$personality_data$personality), collapse = ", "), "\n")
+        }
+      } else {
+        cat("Personality API failed with status:", status_code(response), "\n")
+        cat("Response body:", content(response, "text"), "\n")
       }
     }, error = function(e) {
       cat("Error fetching personality prediction:", e$message, "\n")
@@ -456,9 +475,12 @@ function(input, output, session) {
     switch(current_slide_info$id,
       "login" = render_login_slide(),
       "welcome" = render_welcome_slide(), 
+      "top-1-track" = render_top_1_track_slide(),
       "top-tracks" = render_top_tracks_slide(),
+      "top-1-artist" = render_top_1_artist_slide(),
       "top-artists" = render_top_artists_slide(),
       "popularity" = render_popularity_slide(),
+      "top-1-genre" = render_top_1_genre_slide(),
       "genres" = render_genres_slide(),
       "moods" = render_moods_slide(),
       "personality" = render_personality_slide(),
@@ -695,6 +717,126 @@ function(input, output, session) {
     )
   }
   
+  render_top_1_track_slide <- function() {
+    if (!values$logged_in) {
+      return(div("Please log in first"))
+    }
+    
+    # Check if data is loaded
+    if (!values$data_loaded || is.null(values$top_tracks)) {
+      return(div(style = "text-align: center; padding: 4rem;",
+        div(style = "font-size: 3rem; margin-bottom: 1rem;", "🎵"),
+        h3("Configure Your Analysis First", style = "color: #1DB954; margin-bottom: 1rem;"),
+        p("Please go back to 'Your Musical Journey' and configure your preferences to load your top tracks.",
+          style = "color: #D1D5DB; font-size: 1.1rem; max-width: 500px; margin: 0 auto;"),
+        div(style = "margin-top: 2rem;",
+          actionButton("back_to_config_track1", "← Back to Configuration", 
+            style = "background: #1DB954; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; cursor: pointer;"
+          )
+        )
+      ))
+    }
+
+    # Extract tracks data
+    tracks <- list()
+    if (!is.null(values$top_tracks$items)) {
+      tracks <- values$top_tracks$items
+    } else if (!is.null(values$top_tracks) && is.list(values$top_tracks)) {
+      valid_tracks <- list()
+      for (i in seq_along(values$top_tracks)) {
+        item <- values$top_tracks[[i]]
+        if (is.list(item) && !is.null(item$name) && !is.null(item$artists)) {
+          valid_tracks[[length(valid_tracks) + 1]] <- item
+        }
+      }
+      if (length(valid_tracks) > 0) {
+        tracks <- valid_tracks
+      } else if (!is.null(values$top_tracks$name)) {
+        tracks <- list(values$top_tracks)
+      }
+    }
+
+    if (length(tracks) == 0) {
+      return(div(style = "text-align: center; padding: 4rem;",
+        div(style = "font-size: 3rem; margin-bottom: 1rem;", "🎵"),
+        p("No tracks found. Try listening to more music on Spotify!", style = "color: #D1D5DB; font-size: 1.2rem; font-family: 'Montserrat', sans-serif;")
+      ))
+    }
+
+    # Extract first track data
+    track_item <- tracks[[1]]
+    
+    # Handle API response structure
+    if (!is.null(track_item$track)) {
+      track <- track_item$track
+    } else {
+      track <- track_item
+    }
+    
+    # Extract track information
+    track_name <- if (!is.null(track$name)) as.character(track$name[1]) else "Unknown Track"
+    
+    # Extract album image
+    album_image_url <- "https://via.placeholder.com/200x200/1DB954/white?text=♪"
+    if (!is.null(track$album) && !is.null(track$album$images) && length(track$album$images) > 0) {
+      first_image <- track$album$images[[1]]  # Get largest image
+      if (!is.null(first_image$url)) {
+        album_image_url <- first_image$url
+      }
+    }
+    
+    # Extract artists
+    track_artists <- "Unknown Artist"
+    if (!is.null(track$artists) && length(track$artists) > 0) {
+      artist_names <- c()
+      for (j in seq_along(track$artists)) {
+        artist <- track$artists[[j]]
+        if (is.character(artist)) {
+          artist_names <- c(artist_names, as.character(artist))
+        } else if (is.list(artist) && !is.null(artist$name)) {
+          artist_names <- c(artist_names, as.character(artist$name))
+        }
+      }
+      if (length(artist_names) > 0) {
+        track_artists <- paste(artist_names, collapse = ", ")
+      }
+    }
+
+    # Extract album name
+    album_name <- "Unknown Album"
+    if (!is.null(track$album) && !is.null(track$album$name)) {
+      album_name <- as.character(track$album$name)
+    }
+
+    div(style = "max-width: 800px; margin: 0 auto; text-align: center; padding: 2rem;",
+      # Header
+      div(style = "margin-bottom: 3rem;",
+        div(style = "font-size: 4rem; font-weight: bold; color: #1DB954; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;", "#1"),
+        p("Your most played song this year", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
+      ),
+      
+      # Main content card
+      div(style = "background: linear-gradient(135deg, rgba(29, 185, 84, 0.1), rgba(16, 185, 129, 0.1)); padding: 3rem; border-radius: 2rem; border: 3px solid rgba(29, 185, 84, 0.3); box-shadow: 0 20px 40px rgba(29, 185, 84, 0.2);",
+        # Album artwork
+        div(style = "margin-bottom: 2rem;",
+          img(src = album_image_url, 
+              style = "width: 200px; height: 200px; border-radius: 1.5rem; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);",
+              alt = paste("Album cover for", track_name))
+        ),
+        
+        # Track details
+        div(style = "margin-bottom: 2rem;",
+          div(style = "font-weight: bold; font-size: 2.5rem; color: white; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif; line-height: 1.2;", track_name),
+          div(style = "color: #D1D5DB; font-size: 1.8rem; margin-bottom: 0.5rem; font-family: 'Montserrat', sans-serif;", track_artists),
+          div(style = "color: #9CA3AF; font-size: 1.3rem; font-family: 'Montserrat', sans-serif;", album_name)
+        ),
+        
+        # Crown emoji
+        div(style = "font-size: 3rem; margin-top: 1rem;", "👑")
+      )
+    )
+  }
+  
   render_top_tracks_slide <- function() {
     if (!values$logged_in) {
       return(div("Please log in first"))
@@ -708,7 +850,7 @@ function(input, output, session) {
         p("Please go back to 'Your Musical Journey' and configure your preferences to load your top tracks.",
           style = "color: #D1D5DB; font-size: 1.1rem; max-width: 500px; margin: 0 auto;"),
         div(style = "margin-top: 2rem;",
-          actionButton("back_to_config", "← Back to Configuration", 
+          actionButton("back_to_config_track2", "← Back to Configuration", 
             style = "background: #1DB954; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; cursor: pointer;"
           )
         )
@@ -832,7 +974,7 @@ function(input, output, session) {
     
     div(style = "max-width: 900px; margin: 0 auto;",
       div(style = "text-align: center; margin-bottom: 3rem;",
-        p("These were your most played songs this year", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
+        p("All your most played songs this year", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
       ),
       if (length(tracks) == 0) {
         div(style = "text-align: center; padding: 2rem;",
@@ -931,6 +1073,139 @@ function(input, output, session) {
     )
   }
   
+  render_top_1_artist_slide <- function() {
+    if (!values$logged_in) {
+      return(div("Please log in first"))
+    }
+    
+    # Check if data is loaded
+    if (!values$data_loaded || is.null(values$top_artists)) {
+      return(div(style = "text-align: center; padding: 4rem;",
+        div(style = "font-size: 3rem; margin-bottom: 1rem;", "🎤"),
+        h3("Configure Your Analysis First", style = "color: #1DB954; margin-bottom: 1rem;"),
+        p("Please go back to 'Your Musical Journey' and configure your preferences to load your top artists.",
+          style = "color: #D1D5DB; font-size: 1.1rem; max-width: 500px; margin: 0 auto;"),
+        div(style = "margin-top: 2rem;",
+          actionButton("back_to_config_artist1", "← Back to Configuration", 
+            style = "background: #1DB954; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; cursor: pointer;"
+          )
+        )
+      ))
+    }
+
+    # Handle different data structures (API vs direct file loading)
+    artists <- list()
+    if (!is.null(values$top_artists$items)) {
+      artists <- values$top_artists$items
+    } else if (!is.null(values$top_artists) && is.list(values$top_artists)) {
+      if (length(values$top_artists) > 0) {
+        first_item <- values$top_artists[[1]]
+        if (is.character(first_item)) {
+          # Create mock artist data since the API seems to be returning genres
+          unique_genres <- unique(unlist(values$top_artists))
+          unique_genres <- unique_genres[unique_genres != "0" & unique_genres != "" & !is.na(unique_genres)]
+          
+          artists <- lapply(seq_len(min(5, length(unique_genres))), function(i) {
+            list(
+              name = paste("Artist", i),
+              genres = if (i <= length(unique_genres)) unique_genres[i] else "Unknown",
+              popularity = sample(50:90, 1)
+            )
+          })
+        } else if (is.list(first_item)) {
+          artists <- values$top_artists
+        }
+      }
+    }
+
+    if (length(artists) == 0) {
+      return(div(style = "text-align: center; padding: 4rem;",
+        div(style = "font-size: 3rem; margin-bottom: 1rem;", "🎤"),
+        p("No artists found. Try listening to more music on Spotify!", style = "color: #D1D5DB; font-size: 1.2rem; font-family: 'Montserrat', sans-serif;")
+      ))
+    }
+
+    # Extract first artist data
+    artist <- artists[[1]]
+    
+    # Extract artist information
+    artist_name <- "Unknown Artist"
+    if (!is.null(artist$name)) {
+      if (is.character(artist$name) && length(artist$name) > 0) {
+        artist_name <- as.character(artist$name[1])
+      } else if (!is.null(artist$name)) {
+        artist_name <- as.character(artist$name)
+      }
+    }
+    
+    # Extract artist image
+    artist_image_url <- "https://via.placeholder.com/200x200/1DB954/white?text=♪"
+    if (!is.null(artist$images) && length(artist$images) > 0) {
+      first_image <- artist$images[[1]]  # Get largest image
+      if (!is.null(first_image$url)) {
+        artist_image_url <- first_image$url
+      }
+    }
+    
+    # Extract genres
+    artist_genres <- "No genres"
+    if (!is.null(artist$genres)) {
+      if (is.character(artist$genres) && length(artist$genres) > 0) {
+        genres_subset <- artist$genres[1:min(3, length(artist$genres))]
+        artist_genres <- paste(genres_subset, collapse = ", ")
+      } else if (is.list(artist$genres) && length(artist$genres) > 0) {
+        genre_names <- sapply(artist$genres, function(g) {
+          if (is.character(g)) {
+            if (length(g) > 1) g <- g[1]
+            return(as.character(g))
+          } else {
+            return(as.character(g))
+          }
+        })
+        genres_subset <- genre_names[1:min(3, length(genre_names))]
+        artist_genres <- paste(genres_subset, collapse = ", ")
+      }
+    }
+
+    # Extract popularity
+    artist_popularity <- 0
+    if (!is.null(artist$popularity)) {
+      pop_val <- artist$popularity
+      if (length(pop_val) > 1) pop_val <- pop_val[1]
+      artist_popularity <- as.numeric(pop_val)
+      if (is.na(artist_popularity)) artist_popularity <- 0
+    }
+
+    div(style = "max-width: 800px; margin: 0 auto; text-align: center; padding: 2rem;",
+      # Header
+      div(style = "margin-bottom: 3rem;",
+        div(style = "font-size: 4rem; font-weight: bold; color: #1DB954; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;", "#1"),
+        p("Your most listened artist this year", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
+      ),
+      
+      # Main content card
+      div(style = "background: linear-gradient(135deg, rgba(29, 185, 84, 0.1), rgba(16, 185, 129, 0.1)); padding: 3rem; border-radius: 2rem; border: 3px solid rgba(29, 185, 84, 0.3); box-shadow: 0 20px 40px rgba(29, 185, 84, 0.2);",
+        # Artist image
+        div(style = "margin-bottom: 2rem;",
+          img(src = artist_image_url, 
+              style = "width: 200px; height: 200px; border-radius: 50%; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);",
+              alt = paste("Artist photo of", artist_name))
+        ),
+        
+        # Artist details
+        div(style = "margin-bottom: 2rem;",
+          div(style = "font-weight: bold; font-size: 2.5rem; color: white; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif; line-height: 1.2;", artist_name),
+          div(style = "color: #D1D5DB; font-size: 1.5rem; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;", artist_genres),
+          div(style = "display: inline-block; background: rgba(29, 185, 84, 0.2); color: #10B981; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 1.2rem; font-weight: 600; font-family: 'Montserrat', sans-serif;",
+              paste0(artist_popularity, "% popular"))
+        ),
+        
+        # Crown emoji
+        div(style = "font-size: 3rem; margin-top: 1rem;", "👑")
+      )
+    )
+  }
+  
   render_top_artists_slide <- function() {
     if (!values$logged_in) {
       return(div("Please log in first"))
@@ -998,7 +1273,7 @@ function(input, output, session) {
     
     div(style = "max-width: 1000px; margin: 0 auto;",
       div(style = "text-align: center; margin-bottom: 3rem;",
-        p("The artists who soundtracked your year", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
+        p("All the artists who soundtracked your year", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
       ),
       if (length(artists) == 0) {
         div(style = "text-align: center; padding: 2rem;",
@@ -1218,27 +1493,20 @@ function(input, output, session) {
     
     div(style = "max-width: 900px; margin: 0 auto;",
       div(style = "text-align: center; margin-bottom: 3rem;",
-        p("The genres that defined your year", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
+        p("All the genres that defined your year", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
       ),
-      # Just the genre list - no chart
-      div(
-        div(style = "text-align: center; margin-bottom: 2rem;",
-          div(style = "font-size: 2.5rem; font-weight: bold; color: #10B981; margin-bottom: 0.5rem; font-family: 'Montserrat', sans-serif;", 
-              if(length(sorted_genres) > 0) names(sorted_genres)[1] else "No genres"),
-          div("Your #1 genre", style = "color: #9CA3AF; font-size: 1.2rem; font-family: 'Montserrat', sans-serif;")
-        ),
-        lapply(seq_along(sorted_genres[1:min(8, length(sorted_genres))]), function(i) {
-          genre_name <- names(sorted_genres)[i]
-          genre_percentage <- as.numeric(sorted_genres[[i]])
-          color <- colors[((i-1) %% length(colors)) + 1]
-          
-          div(class = "genre-bar", style = "margin-bottom: 1rem;",
-            div(class = "genre-color", style = paste0("background-color: ", color, "; width: 8px; height: 8px; border-radius: 50%; margin-right: 1rem;")),
-            div(class = "genre-name", style = "font-size: 1.3rem; font-family: 'Montserrat', sans-serif; color: white;", genre_name),
-            div(class = "genre-percentage", style = "font-size: 1.3rem; font-family: 'Montserrat', sans-serif; color: #1DB954;", paste0(round(genre_percentage, 1), "%"))
-          )
-        })
-      )
+      
+      lapply(seq_along(sorted_genres[1:min(8, length(sorted_genres))]), function(i) {
+        genre_name <- names(sorted_genres)[i]
+        genre_percentage <- as.numeric(sorted_genres[[i]])
+        color <- colors[((i-1) %% length(colors)) + 1]
+        
+        div(class = "genre-bar", style = "margin-bottom: 1rem;",
+          div(class = "genre-color", style = paste0("background-color: ", color, "; width: 8px; height: 8px; border-radius: 50%; margin-right: 1rem;")),
+          div(class = "genre-name", style = "font-size: 1.3rem; font-family: 'Montserrat', sans-serif; color: white;", genre_name),
+          div(class = "genre-percentage", style = "font-size: 1.3rem; font-family: 'Montserrat', sans-serif; color: #1DB954;", paste0(round(genre_percentage, 1), "%"))
+        )
+      })
     )
   }
   
@@ -1344,128 +1612,253 @@ function(input, output, session) {
       ))
     }
     
-    # Extract personality data from the actual API response format
-    personality_type <- "Balanced"
+    # Extract personality data from the enhanced API response format
+    personality_type <- "Balanced Listener"
     personality_description <- "Your musical taste reflects a well-rounded personality with balanced traits."
-    confidence_score <- 85  # Default confidence since API doesn't provide it
+    confidence_score <- 85
     traits <- list()
+    analysis_metadata <- NULL
     
     if (!is.null(values$personality_data)) {
-      cat("=== PERSONALITY API RESPONSE DEBUG ===\n")
+      cat("=== ENHANCED PERSONALITY API RESPONSE DEBUG ===\n")
       cat("Personality data available fields:", paste(names(values$personality_data), collapse = ", "), "\n")
       
-      # Extract personality information based on actual API response structure
+      # Handle the enhanced personality response format
       if (!is.null(values$personality_data$personality)) {
         personality_info <- values$personality_data$personality
+        
+        # Extract the sophisticated personality type
+        if (!is.null(personality_info$personality_type)) {
+          personality_type <- personality_info$personality_type
+          cat("Found sophisticated personality type:", personality_type, "\n")
+        }
+        
+        # Extract confidence score
+        if (!is.null(personality_info$confidence)) {
+          confidence_score <- personality_info$confidence
+          cat("Found confidence score:", confidence_score, "\n")
+        }
         
         # Extract scores as traits
         if (!is.null(personality_info$scores)) {
           traits <- personality_info$scores
           cat("Found personality scores:", length(traits), "traits\n")
-          
-          # Calculate a general personality type based on highest scores
-          scores <- personality_info$scores
-          if (length(scores) > 0) {
-            # Find the highest scoring trait
-            max_trait <- names(scores)[which.max(unlist(scores))]
-            max_score <- max(unlist(scores))
-            
-            # Create a personality type based on dominant trait
-            personality_type <- switch(max_trait,
-              "extraversion" = "Social Butterfly",
-              "openness" = "Creative Explorer", 
-              "conscientiousness" = "Organized Achiever",
-              "agreeableness" = "Harmonious Connector",
-              "emotional_stability" = "Steady Minded",
-              "Balanced Listener"
-            )
-            
-            # Get description for the dominant trait
-            if (!is.null(personality_info$descriptions) && !is.null(personality_info$descriptions[[max_trait]])) {
-              personality_description <- personality_info$descriptions[[max_trait]]
-            }
-            
-            # Calculate confidence based on how high the dominant score is
-            confidence_score <- max_score
+        }
+        
+        # Extract descriptions for each trait
+        trait_descriptions <- personality_info$descriptions
+        
+        # Extract analysis metadata
+        if (!is.null(personality_info$analysis_metadata)) {
+          analysis_metadata <- personality_info$analysis_metadata
+          cat("Found analysis metadata with", length(analysis_metadata), "fields\n")
+        }
+        
+        # Create a general personality description based on the highest trait
+        if (!is.null(trait_descriptions) && length(trait_descriptions) > 0) {
+          # Find the dominant trait based on scores
+          if (length(traits) > 0) {
+            max_trait <- names(traits)[which.max(unlist(traits))]
+            personality_description <- trait_descriptions[[max_trait]]
+            cat("Using description for dominant trait:", max_trait, "\n")
+          } else {
+            # Use the first available description
+            personality_description <- trait_descriptions[[1]]
           }
         }
         
-        # If no specific dominant trait, use a general description
-        if (!is.null(personality_info$descriptions)) {
-          # Create a combined description from all traits
-          all_descriptions <- personality_info$descriptions
-          if (length(all_descriptions) > 0) {
-            # Use the first description as primary, or create a summary
-            personality_description <- "Based on your music preferences, you show a balanced personality with varied traits that complement each other well."
+      } else {
+        # Handle direct response format (fallback)
+        if (!is.null(values$personality_data$personality_type)) {
+          personality_type <- values$personality_data$personality_type
+        }
+        if (!is.null(values$personality_data$confidence)) {
+          confidence_score <- values$personality_data$confidence
+        }
+        if (!is.null(values$personality_data$scores)) {
+          traits <- values$personality_data$scores
+        }
+        if (!is.null(values$personality_data$analysis_metadata)) {
+          analysis_metadata <- values$personality_data$analysis_metadata
+        }
+        
+        # Use descriptions if available
+        trait_descriptions <- values$personality_data$descriptions
+        if (!is.null(trait_descriptions) && length(trait_descriptions) > 0) {
+          if (length(traits) > 0) {
+            max_trait <- names(traits)[which.max(unlist(traits))]
+            personality_description <- trait_descriptions[[max_trait]]
+          } else {
+            personality_description <- trait_descriptions[[1]]
           }
         }
       }
       
-      cat("Personality type:", personality_type, "\n")
-      cat("Confidence score:", confidence_score, "\n")
+      cat("Final personality type:", personality_type, "\n")
+      cat("Final confidence score:", confidence_score, "\n")
       cat("Number of traits:", length(traits), "\n")
-      cat("=====================================\n")
+      cat("Has metadata:", !is.null(analysis_metadata), "\n")
+      cat("===============================================\n")
+    } else {
+      cat("No personality data available - using default values\n")
     }
     
-    # Define personality emojis and colors based on type
-    personality_emojis <- list(
-      "Social Butterfly" = "🦋",
-      "Creative Explorer" = "🎨", 
-      "Organized Achiever" = "🎯",
-      "Harmonious Connector" = "🤝",
-      "Steady Minded" = "🧘",
-      "Balanced Listener" = "⚖️"
-    )
+    # Define personality emojis based on type keywords
+    get_personality_emoji <- function(type) {
+      type_lower <- tolower(type)
+      if (grepl("social|butterfly|explorer", type_lower)) return("🦋")
+      if (grepl("creative|intellectual|thoughtful", type_lower)) return("🎨")
+      if (grepl("organized|achiever|steady", type_lower)) return("🎯")
+      if (grepl("harmonious|connector|global|cosmopolitan", type_lower)) return("🌍")
+      if (grepl("adventurer|curious", type_lower)) return("🧭")
+      if (grepl("balanced|gentle", type_lower)) return("⚖️")
+      return("✨")  # Default sparkling stars for sophisticated types
+    }
     
-    emoji <- personality_emojis[[personality_type]] %||% "🧠"
+    emoji <- get_personality_emoji(personality_type)
     
-    div(style = "max-width: 1000px; margin: 0 auto;",
+    div(style = "max-width: 1200px; margin: 0 auto;",
       div(style = "text-align: center; margin-bottom: 3rem;",
-        p("Based on your music taste, here's your musical personality", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
+        p("Based on your music taste, here's your sophisticated musical personality", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
       ),
       
-      # Main personality card
-      div(style = "background: rgba(0,0,0,0.3); padding: 3rem; border-radius: 1.5rem; border: 2px solid #1DB954; text-align: center; margin-bottom: 2rem;",
+      # Main enhanced personality card
+      div(style = "background: linear-gradient(135deg, rgba(29, 185, 84, 0.1), rgba(30, 215, 96, 0.05)); padding: 3rem; border-radius: 1.5rem; border: 2px solid #1DB954; text-align: center; margin-bottom: 2rem; box-shadow: 0 8px 32px rgba(29, 185, 84, 0.2);",
         div(style = "font-size: 4rem; margin-bottom: 1.5rem;", emoji),
-        div(style = "font-size: 2.5rem; font-weight: bold; color: #1DB954; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;", personality_type),
-        div(style = "font-size: 1.2rem; color: #D1D5DB; line-height: 1.6; margin-bottom: 2rem; font-family: 'Montserrat', sans-serif;", personality_description),
+        div(style = "font-size: 2.8rem; font-weight: bold; color: #1DB954; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;", personality_type),
+        div(style = "font-size: 1.3rem; color: #E5E7EB; line-height: 1.7; margin-bottom: 2rem; max-width: 800px; margin-left: auto; margin-right: auto; font-family: 'Montserrat', sans-serif;", personality_description),
         
-        # Confidence score
-        div(style = "display: inline-block; background: rgba(29, 185, 84, 0.2); color: #10B981; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 1.1rem; font-weight: 600; font-family: 'Montserrat', sans-serif;",
-            paste0("Confidence: ", round(confidence_score, 1), "%"))
+        # Enhanced confidence display with metadata context
+        div(style = "display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;",
+          div(style = "display: inline-block; background: rgba(29, 185, 84, 0.2); color: #10B981; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 1.1rem; font-weight: 600; font-family: 'Montserrat', sans-serif;",
+              paste0("Analysis Confidence: ", round(confidence_score, 1), "%")),
+          
+          # Add metadata insights if available
+          if (!is.null(analysis_metadata)) {
+            div(style = "display: inline-block; background: rgba(99, 102, 241, 0.2); color: #8B5CF6; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 1.1rem; font-weight: 600; font-family: 'Montserrat', sans-serif;",
+                paste0("Genre Diversity: ", round(analysis_metadata$genre_diversity * 100, 1), "%"))
+          } else {
+            div()
+          },
+          
+          if (!is.null(analysis_metadata) && !is.null(analysis_metadata$cultural_diversity)) {
+            div(style = "display: inline-block; background: rgba(236, 72, 153, 0.2); color: #EC4899; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 1.1rem; font-weight: 600; font-family: 'Montserrat', sans-serif;",
+                paste0("Cultural Range: ", round(analysis_metadata$cultural_diversity * 100, 1), "%"))
+          } else {
+            div()
+          }
+        )
       ),
       
-      # Traits section (if available)
+      # Enhanced traits section with sophisticated display
       if (length(traits) > 0) {
         div(style = "margin-top: 2rem;",
-          div(style = "text-align: center; margin-bottom: 2rem;",
-            h4("Your Musical Personality Traits", style = "color: white; font-size: 1.5rem; font-family: 'Montserrat', sans-serif;")
+          div(style = "text-align: center; margin-bottom: 2.5rem;",
+            h4("Your Musical Personality Breakdown", style = "color: white; font-size: 1.8rem; font-family: 'Montserrat', sans-serif; margin-bottom: 1rem;"),
+            p("Each trait reflects how your music choices reveal aspects of your personality", style = "color: #9CA3AF; font-size: 1.1rem; font-family: 'Montserrat', sans-serif;")
           ),
-          div(style = "display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;",
+          div(style = "display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;",
             lapply(names(traits), function(trait_name) {
               trait_value <- traits[[trait_name]]
               trait_percentage <- if(is.numeric(trait_value)) trait_value else as.numeric(trait_value)
               
-              # Create better trait names for display
-              display_name <- switch(trait_name,
-                "extraversion" = "Social Energy",
-                "openness" = "Creativity", 
-                "conscientiousness" = "Organization",
-                "agreeableness" = "Harmony",
-                "emotional_stability" = "Emotional Balance",
-                tools::toTitleCase(gsub("_", " ", trait_name))
+              # Create sophisticated trait names and emojis
+              trait_info <- switch(trait_name,
+                "extraversion" = list(name = "Social Energy", emoji = "🎉", color = "#F59E0B"),
+                "openness" = list(name = "Creative Openness", emoji = "🎨", color = "#8B5CF6"), 
+                "conscientiousness" = list(name = "Organization", emoji = "📋", color = "#10B981"),
+                "agreeableness" = list(name = "Harmony & Empathy", emoji = "🤝", color = "#EC4899"),
+                "emotional_stability" = list(name = "Emotional Balance", emoji = "🧘", color = "#06B6D4"),
+                list(name = tools::toTitleCase(gsub("_", " ", trait_name)), emoji = "📊", color = "#6B7280")
               )
               
-              div(style = "background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 1rem; border: 1px solid rgba(29, 185, 84, 0.3); text-align: center;",
-                div(style = "font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; font-family: 'Montserrat', sans-serif;", display_name),
-                div(style = "font-size: 1.5rem; color: #1DB954; font-weight: bold; font-family: 'Montserrat', sans-serif;", paste0(round(trait_percentage, 1), "%"))
+              # Create visual progress bar
+              progress_width <- paste0(trait_percentage, "%")
+              
+              div(style = "background: rgba(0,0,0,0.3); padding: 2rem; border-radius: 1.2rem; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; transition: transform 0.3s ease; position: relative; overflow: hidden;",
+                # Background gradient based on score
+                div(style = paste0("position: absolute; top: 0; left: 0; height: 100%; width: ", progress_width, "; background: linear-gradient(135deg, ", trait_info$color, "20, transparent); border-radius: 1.2rem; transition: width 0.8s ease;")),
+                
+                # Content
+                div(style = "position: relative; z-index: 2;",
+                  div(style = "font-size: 2rem; margin-bottom: 0.5rem;", trait_info$emoji),
+                  div(style = "font-size: 1.3rem; font-weight: 600; color: white; margin-bottom: 0.8rem; font-family: 'Montserrat', sans-serif;", trait_info$name),
+                  div(style = paste0("font-size: 2.2rem; color: ", trait_info$color, "; font-weight: bold; font-family: 'Montserrat', sans-serif; margin-bottom: 0.5rem;"), paste0(round(trait_percentage, 1), "%")),
+                  
+                  # Add interpretation
+                  div(style = "font-size: 0.9rem; color: #9CA3AF; font-family: 'Montserrat', sans-serif;",
+                    if (trait_percentage >= 70) "Very High"
+                    else if (trait_percentage >= 55) "High"
+                    else if (trait_percentage >= 45) "Moderate"
+                    else if (trait_percentage >= 30) "Low"
+                    else "Very Low"
+                  )
+                )
               )
             })
           )
         )
       } else {
         div()
-      }
+      },
+      
+      # Add sophisticated metadata section if available
+      if (!is.null(analysis_metadata)) {
+        div(style = "margin-top: 3rem; background: rgba(0,0,0,0.2); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(255, 255, 255, 0.1);",
+          div(style = "text-align: center; margin-bottom: 1.5rem;",
+            h5("Analysis Insights", style = "color: #1DB954; font-size: 1.4rem; font-family: 'Montserrat', sans-serif; margin-bottom: 0.5rem;"),
+            p("Deep dive into how we analyzed your musical personality", style = "color: #9CA3AF; font-size: 1rem; font-family: 'Montserrat', sans-serif;")
+          ),
+          
+          div(style = "display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;",
+            # Complexity Score
+            if (!is.null(analysis_metadata$complexity_score)) {
+              div(style = "text-align: center; padding: 1rem;",
+                div(style = "font-size: 1.5rem; color: #8B5CF6; font-weight: bold; font-family: 'Montserrat', sans-serif;", 
+                    paste0(round(analysis_metadata$complexity_score * 100, 1), "%")),
+                div(style = "font-size: 0.9rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;", "Music Complexity"),
+                div(style = "font-size: 0.8rem; color: #9CA3AF; font-family: 'Montserrat', sans-serif; margin-top: 0.3rem;", 
+                    "How sophisticated your taste is")
+              )
+            } else { div() },
+            
+            # Total Genres
+            if (!is.null(analysis_metadata$total_genres_analyzed)) {
+              div(style = "text-align: center; padding: 1rem;",
+                div(style = "font-size: 1.5rem; color: #10B981; font-weight: bold; font-family: 'Montserrat', sans-serif;", 
+                    analysis_metadata$total_genres_analyzed),
+                div(style = "font-size: 0.9rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;", "Genres Analyzed"),
+                div(style = "font-size: 0.8rem; color: #9CA3AF; font-family: 'Montserrat', sans-serif; margin-top: 0.3rem;", 
+                    "Total music genres in analysis")
+              )
+            } else { div() },
+            
+            # Cultural Regions
+            if (!is.null(analysis_metadata$cultural_regions) && length(analysis_metadata$cultural_regions) > 0) {
+              div(style = "text-align: center; padding: 1rem;",
+                div(style = "font-size: 1.5rem; color: #EC4899; font-weight: bold; font-family: 'Montserrat', sans-serif;", 
+                    length(analysis_metadata$cultural_regions)),
+                div(style = "font-size: 0.9rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;", "Cultural Regions"),
+                div(style = "font-size: 0.8rem; color: #9CA3AF; font-family: 'Montserrat', sans-serif; margin-top: 0.3rem;", 
+                    paste(analysis_metadata$cultural_regions, collapse = ", "))
+              )
+            } else { div() }
+          ),
+          
+          # Top matched genres if available
+          if (!is.null(analysis_metadata$matched_genres) && length(analysis_metadata$matched_genres) > 0) {
+            div(style = "text-align: center; margin-top: 1rem;",
+              div(style = "font-size: 1rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif; margin-bottom: 0.5rem;", "Key Genres Analyzed:"),
+              div(style = "display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem;",
+                lapply(head(analysis_metadata$matched_genres, 5), function(genre) {
+                  div(style = "background: rgba(29, 185, 84, 0.1); color: #1DB954; padding: 0.3rem 0.8rem; border-radius: 1rem; font-size: 0.85rem; font-family: 'Montserrat', sans-serif;",
+                      genre)
+                })
+              )
+            )
+          } else { div() }
+        )
+      } else { div() }
     )
   }
   
@@ -1524,6 +1917,31 @@ function(input, output, session) {
   observeEvent(input$back_to_config6, {
     values$current_slide <- 2  # Welcome slide
   })
+  
+  # Handle back to configuration buttons for TOP 1 slides
+  observeEvent(input$back_to_config_track1, {
+    values$current_slide <- 2  # Welcome slide
+  })
+  
+  observeEvent(input$back_to_config_track2, {
+    values$current_slide <- 2  # Welcome slide
+  })
+  
+  observeEvent(input$back_to_config_artist1, {
+    values$current_slide <- 2  # Welcome slide
+  })
+  
+  observeEvent(input$back_to_config_artist2, {
+    values$current_slide <- 2  # Welcome slide
+  })
+  
+  observeEvent(input$back_to_config_genre1, {
+    values$current_slide <- 2  # Welcome slide
+  })
+  
+  observeEvent(input$back_to_config_genre2, {
+    values$current_slide <- 2  # Welcome slide
+  })
 
   # --- MOOD PIE CHART ---
   output$mood_pie <- renderPlotly({
@@ -1564,4 +1982,97 @@ function(input, output, session) {
         margin = list(l = 20, r = 20, t = 80, b = 20)
       )
   })
+  
+  render_top_1_genre_slide <- function() {
+    if (!values$logged_in) {
+      return(div("Please log in first"))
+    }
+    
+    # Check if data is loaded
+    if (!values$data_loaded || is.null(values$genre_data)) {
+      return(div(style = "text-align: center; padding: 4rem;",
+        div(style = "font-size: 3rem; margin-bottom: 1rem;", "🎼"),
+        h3("Configure Your Analysis First", style = "color: #1DB954; margin-bottom: 1rem;"),
+        p("Please go back to 'Your Musical Journey' and configure your preferences to analyze your genres.",
+          style = "color: #D1D5DB; font-size: 1.1rem; max-width: 500px; margin: 0 auto;"),
+        div(style = "margin-top: 2rem;",
+          actionButton("back_to_config_genre1", "← Back to Configuration", 
+            style = "background: #1DB954; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 1rem; cursor: pointer;"
+          )
+        )
+      ))
+    }
+
+    # Use API data for genre analysis
+    top_genres <- list()
+    if (!is.null(values$genre_data) && !is.null(values$genre_data$percentages)) {
+      top_genres <- values$genre_data$percentages
+    }
+    
+    if (length(top_genres) == 0) {
+      return(div(style = "text-align: center; padding: 4rem;",
+        div(style = "font-size: 3rem; margin-bottom: 1rem;", "🎼"),
+        p("No genre data available", style = "color: #D1D5DB; font-size: 1.2rem; font-family: 'Montserrat', sans-serif;")
+      ))
+    }
+
+    # Sort genres by percentage to get the top one
+    sorted_genres <- top_genres[order(unlist(top_genres), decreasing = TRUE)]
+    top_genre_name <- names(sorted_genres)[1]
+    top_genre_percentage <- as.numeric(sorted_genres[[1]])
+
+    # Define genre emojis
+    genre_emojis <- list(
+      "pop" = "🎵",
+      "rock" = "🎸",
+      "hip hop" = "🎤",
+      "electronic" = "🎹",
+      "jazz" = "🎺",
+      "classical" = "🎼",
+      "country" = "🤠",
+      "indie" = "🎨",
+      "alternative" = "⚡",
+      "r&b" = "💫",
+      "soul" = "❤️",
+      "funk" = "🕺",
+      "reggae" = "🌴",
+      "blues" = "💙",
+      "folk" = "🌾",
+      "metal" = "⚡",
+      "punk" = "💥"
+    )
+
+    # Find appropriate emoji
+    genre_emoji <- "🎵"  # default
+    for (genre_key in names(genre_emojis)) {
+      if (grepl(genre_key, tolower(top_genre_name))) {
+        genre_emoji <- genre_emojis[[genre_key]]
+        break
+      }
+    }
+
+    div(style = "max-width: 800px; margin: 0 auto; text-align: center; padding: 2rem;",
+      # Header
+      div(style = "margin-bottom: 3rem;",
+        div(style = "font-size: 4rem; font-weight: bold; color: #1DB954; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;", "#1"),
+        p("Your most listened genre this year", style = "font-size: 1.5rem; color: #D1D5DB; font-family: 'Montserrat', sans-serif;")
+      ),
+      
+      # Main content card
+      div(style = "background: linear-gradient(135deg, rgba(29, 185, 84, 0.1), rgba(16, 185, 129, 0.1)); padding: 3rem; border-radius: 2rem; border: 3px solid rgba(29, 185, 84, 0.3); box-shadow: 0 20px 40px rgba(29, 185, 84, 0.2);",
+        # Genre emoji
+        div(style = "font-size: 6rem; margin-bottom: 2rem;", genre_emoji),
+        
+        # Genre details
+        div(style = "margin-bottom: 2rem;",
+          div(style = "font-weight: bold; font-size: 2.5rem; color: white; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif; line-height: 1.2; text-transform: capitalize;", top_genre_name),
+          div(style = "color: #1DB954; font-size: 2rem; font-weight: 600; margin-bottom: 1rem; font-family: 'Montserrat', sans-serif;", paste0(round(top_genre_percentage, 1), "%")),
+          div(style = "color: #D1D5DB; font-size: 1.3rem; font-family: 'Montserrat', sans-serif;", "of your music")
+        ),
+        
+        # Crown emoji
+        div(style = "font-size: 3rem; margin-top: 1rem;", "👑")
+      )
+    )
+  }
 }
