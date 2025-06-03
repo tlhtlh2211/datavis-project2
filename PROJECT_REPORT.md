@@ -21,26 +21,36 @@
 
 ## Introduction
 
-### Problem Statement
+### Our Goal 
 
-The official Spotify Wrapped 2024 disappointed millions of users with its basic lists and inaccuracies, lacking the human-like creativity and personalized insights it was once known for. Traditional music analytics tools like Spotify's yearly summary provide static, limited perspectives on users' listening habits, often failing to capture the nuanced patterns and emotional landscapes of personal music consumption. While Spotify boasts 675 million users, their 2024 Wrapped reduced the experience to simple artist and song lists, replacing creative storytelling with uninspiring AI-generated content.
+To create an interactive Shiny app using R Shiny and Python flask that is an improved version of Spotify Wrapped. The application analyses the music current streaming data of users based on top tracks, artists and genres. It provides mood analysis and personality predictions based on listening habits, and allows the user to generate their music analaysis at any time, instead of a once-a-year release. 
 
-This gap in current music analytics tools creates an opportunity for a more dynamic, real-time, and insightful approach to personal music data visualization. Users desire deeper understanding of their musical personality, mood patterns, and taste evolution—insights that existing solutions fail to provide.
+The motivation for this project comes from feedback from friends who felt that last year’s official Spotify Wrapped did not accurately represent their music tastes (Pimblett, 2024). This is due to the 2024 Wrapped being mainly AI generated and consequently lacking the human-like creativity it was originally known for.
+
+Therefore, using our own interface creativity, up-to-date listening data, and methods of personality and genre analysis, our application is unique. It provides further interactivity and data analysis than basic alternatives like Receiptify and improves on Spotify Wrapped’s lack of personalisation.
 
 ### Dataset Description
 
-Our application leverages multiple data sources to create comprehensive musical profiles:
+We collected user-specific music streaming data using the **Spotify Web API** in combination with **Receiptify** authentication methods. This allowed us to retrieve real-time, personalized data from individual Spotify accounts using authentication tokens, including:
 
-**Primary Data Sources:**
-- **Spotify Web API**: Real-time user data including listening history, top tracks, top artists, and audio features
-- **Demo Datasets**: Pre-processed JSON files containing sample user profiles for demonstration purposes
+- `SPOTIFY_CLIENT_ID`
+- `SPOTIFY_CLIENT_SECRET`
+- `SPOTIFY_ACCESS_TOKEN`
+- `SPOTIFY_REFRESH_TOKEN`
 
-**Key Variables:**
-- **Audio Features**: Danceability, energy, valence, acousticness, instrumentalness, and tempo
-- **Track Metadata**: Song titles, artist names, album information, popularity scores, and release dates
-- **User Metrics**: Play counts, listening patterns, and temporal behavior
-- **Genre Classifications**: Musical genre tags and style categorizations
-- **Mood Indicators**: Emotional sentiment derived from audio feature analysis
+We stored this data in structured `JSON` format, containing the following components and key variables relevant to our analysis:
+
+| Step | Data (Variables and Types) |
+|------|-----------------------------|
+| `current_user` | - `country` (string)<br>- `display_name` (string)<br>- `external_urls` (object: Spotify profile URL)<br>- `followers.total` (integer)<br>- `href` (string URL to API)<br>- `id` (string)<br>- `images` (list of objects: height, width, url)<br>- `product` (string, e.g., "premium")<br>- `type` (string, usually "user")<br>- `uri` (string, Spotify URI) |
+| `recently_played` | - `items` (list of up to 50 track objects), each containing:<br>&nbsp;&nbsp;- `track.name` (string)<br>&nbsp;&nbsp;- `track.album` (object: name, release_date, images, external_urls)<br>&nbsp;&nbsp;- `track.artists` (list of objects: name, id, uri)<br>&nbsp;&nbsp;- `available_markets` (list of strings)<br>&nbsp;&nbsp;- `external_ids` (object: ISRC)<br>&nbsp;&nbsp;- `external_urls` (object: Spotify link)<br>&nbsp;&nbsp;- `played_at` (ISO 8601 timestamp)<br>&nbsp;&nbsp;- `context` (object: uri, href, type) |
+| `top_artists_short` | List of artist objects:<br>- `name` (string)<br>- `genres` (list of strings)<br>- `popularity` (integer)<br>- `followers.total` (integer)<br>- `external_urls` (object)<br>- `id`, `uri` (strings)<br>- `images` (list of image objects) |
+| `top_artists_medium` | Same structure as `top_artists_short`, but over the last 6 months |
+| `top_artists_long` | Same structure as `top_artists_short`, but over all-time listening data |
+| `top_tracks_short` | List of track objects:<br>- `name` (string)<br>- `album` (object: name, release_date, external_urls)<br>- `artists` (list of objects: name, id, uri)<br>- `duration_ms` (integer)<br>- `popularity` (integer)<br>- `explicit` (boolean)<br>- `external_urls` (object: Spotify link)<br>- `id`, `uri` (strings) |
+| `top_tracks_long` | Same structure as `top_tracks_short`, but covers all-time listening history |
+
+
 
 ### Novelty of Our Solution
 
@@ -389,7 +399,7 @@ While limitations exist around API dependencies and scalability, the project est
 ---
 
 ## References
-
+- Pimblett, R. (2024, December 6). It’s been long enough. Spotify Wrapped 2024 sucked. Here’s why. Still Listening Magazine. https://www.stilllisteningmagazine.com/features/spotify-wrapped-2024
 - Spotify Web API Documentation. (2024). Spotify for Developers.
 - Chang, W., Cheng, J., Allaire, J., Sievert, C., Schloerke, B., Xie, Y., Allen, J., McPherson, J., Dipert, A., & Borges, B. (2024). Shiny: Web Application Framework for R.
 - Lamere, P. (2024). Spotipy: A light weight Python library for the Spotify Web API.
