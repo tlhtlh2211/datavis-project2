@@ -51,66 +51,6 @@ We stored this data in structured `JSON` format, containing the following compon
 | `top_tracks_long` | Same structure as `top_tracks_short`, but covers all-time listening history |
 
 
-### Overview of Our Application
-#### Slide 1 - Feature Selection
-Spotify Wrapped provides a general slideshow to its users, but does not allow them to select what they want analysed in real-time. For instance you can select the amount of artists, songs and time frame you want analysed, and go back to this initial page to change your prefernces at any point. In addition, it provides details about the User's profile picture, followers, country and subscription plan derived from the `JSON` file.
-
-<img width="1505" alt="Screenshot 2025-06-03 at 5 06 41 pm" src="https://github.com/user-attachments/assets/2db02ecf-776e-437b-8e5e-384c53a8f9a9" />
-
-
-#### Slide 2 - Top Song
-This slide provides the information that every user cares about most. Their top most-played song! (and the artist of that song, album cover and album name). 
-
-<img width="1501" alt="Screenshot 2025-06-03 at 5 08 08 pm" src="https://github.com/user-attachments/assets/11e16f00-e9fb-4fd8-9b5e-6e2f84211ea8" />
-
-#### Slide 3 - Top x Songs
-Provides a list of the user's x amount (selected on the features slide) of top songs ranked in order. The scrollable and interactive interface also includes their album cover, artists and popularity score all extracted from the `JSON` file. 
-
-<img width="1512" alt="Screenshot 2025-06-03 at 5 12 28 pm" src="https://github.com/user-attachments/assets/91fe36b5-2c5c-45bb-a2df-893f3c588833" />
-
-#### Slide 4 - Top Artist
-The user is shown their top artist, with the genre of their music and popularity score listed, also extracted from the `JSON` file. 
-
-<img width="1512" alt="Screenshot 2025-06-03 at 5 12 58 pm" src="https://github.com/user-attachments/assets/93fd11f4-cd41-432d-8912-5f42c2b58854" />
-
-#### Slide 5 - Top x Artists
-Provides a list of the user's x amount (selected on the features slide) of top artists ranked in order. The scrollable and interactive interface also includes their profile picture, genres, and popularity score all extracted from the `JSON` file. 
-
-<img width="1512" alt="Screenshot 2025-06-03 at 5 14 33 pm" src="https://github.com/user-attachments/assets/9d1837b1-9665-48ac-a8ff-dd4feda209fd" />
-
-#### Slide 6 - Music Taste Analysis 
-Analyses the popularity score of the songs listened to and creates an average, which tells the user how mainstream the music they listen to is. It checks for the lowest popularity and highest popularity scores overall from the songs they listen to and provides the user with this minumum and maximum. 
-
-<img width="905" alt="Screenshot 2025-06-03 at 5 26 35 pm" src="https://github.com/user-attachments/assets/e3c15b77-bcda-4169-b7f6-ad97b75cda30" />
-
-#### Slide 7 - Top Genre
-Provides the user with their top genre listed to during the initially selected time period. 
-
-<img width="907" alt="Screenshot 2025-06-03 at 5 28 21 pm" src="https://github.com/user-attachments/assets/62489083-088e-4d98-b1d9-fde259de1c3e" />
-
-#### Slide 8 - Favourite Genres Ranked
-Informs the user of their top 8 genres listened to and the percentage of time those genres were listened to - informing their ranking position. 
-
-<img width="904" alt="Screenshot 2025-06-03 at 5 29 56 pm" src="https://github.com/user-attachments/assets/36f4ce88-e2b8-4a0f-bda0-72af5b734b62" />
-
-
-#### Slide 9 - Musical Moods
-
-<img width="901" alt="Screenshot 2025-06-03 at 5 30 13 pm" src="https://github.com/user-attachments/assets/7c000729-8c4d-4b33-9251-5b4d39f55fb5" />
-
-#### Slide 10 - Personality Analysis 
-Provides a personality prediction and description based on the user's music song and artist preferences. Also provides a percentage based on analysis confidence from us as developers, gener diversity and cultural range.
-
-<img width="903" alt="Screenshot 2025-06-03 at 5 30 30 pm" src="https://github.com/user-attachments/assets/e8f0b7f7-e70b-47bd-b458-2242477a1b22" />
-
-
-#### Slide 11 - Personality Deep Dive 
-Uses the user's music preferences to provide predictions regarding their harmony and empathy ability, organisation, emotional balance, social energy and creative openness.
-
-<img width="1254" alt="Screenshot 2025-06-03 at 5 30 48 pm" src="https://github.com/user-attachments/assets/c61bfeb6-2679-44ba-b2cf-8b4afaf20a17" />
-<img width="1143" alt="Screenshot 2025-06-03 at 5 31 02 pm" src="https://github.com/user-attachments/assets/223684b6-48d5-4296-8304-16d8416374f2" />
-
-
 ---
 
 ## Methodology & Approach
@@ -159,7 +99,6 @@ The application supports both real-time Spotify API calls for authenticated user
 ---
 
 ## Implementation & Features
-
 ### Components Explanation
 
 **R Libraries Utilized:**
@@ -231,6 +170,64 @@ Unlike overwhelming dashboards, our structured 9-slide experience guides users t
 - Spotify-inspired typography and spacing
 - Professional glass-morphism effects
 - **Value**: Familiar, polished experience that feels native to Spotify ecosystem
+### Overview of Our Application
+#### Slide 1 - Feature Selection
+Spotify Wrapped provides a general slideshow to its users, but does not allow them to select what they want analysed in real-time. For instance you can select the amount of artists, songs and time frame you want analysed, and go back to this initial page to change your prefernces at any point. In addition, it provides details about the User's profile picture, followers, country and subscription plan derived from the `JSON` file.
+
+<img width="1505" alt="Screenshot 2025-06-03 at 5 06 41 pm" src="https://github.com/user-attachments/assets/2db02ecf-776e-437b-8e5e-384c53a8f9a9" />
+
+
+#### Slide 2 - Top Song
+This slide provides the information that every user cares about most. Their top most-played song! (and the artist of that song, album cover and album name). 
+
+<img width="1501" alt="Screenshot 2025-06-03 at 5 08 08 pm" src="https://github.com/user-attachments/assets/11e16f00-e9fb-4fd8-9b5e-6e2f84211ea8" />
+
+#### Slide 3 - Top x Songs
+Provides a list of the user's x amount (selected on the features slide) of top songs ranked in order. The scrollable and interactive interface also includes their album cover, artists and popularity score all extracted from the `JSON` file. 
+
+<img width="1512" alt="Screenshot 2025-06-03 at 5 12 28 pm" src="https://github.com/user-attachments/assets/91fe36b5-2c5c-45bb-a2df-893f3c588833" />
+
+#### Slide 4 - Top Artist
+The user is shown their top artist, with the genre of their music and popularity score listed, also extracted from the `JSON` file. 
+
+<img width="1512" alt="Screenshot 2025-06-03 at 5 12 58 pm" src="https://github.com/user-attachments/assets/93fd11f4-cd41-432d-8912-5f42c2b58854" />
+
+#### Slide 5 - Top x Artists
+Provides a list of the user's x amount (selected on the features slide) of top artists ranked in order. The scrollable and interactive interface also includes their profile picture, genres, and popularity score all extracted from the `JSON` file. 
+
+<img width="1512" alt="Screenshot 2025-06-03 at 5 14 33 pm" src="https://github.com/user-attachments/assets/9d1837b1-9665-48ac-a8ff-dd4feda209fd" />
+
+#### Slide 6 - Music Taste Analysis 
+Analyses the popularity score of the songs listened to and creates an average, which tells the user how mainstream the music they listen to is. It checks for the lowest popularity and highest popularity scores overall from the songs they listen to and provides the user with this minumum and maximum. 
+
+<img width="905" alt="Screenshot 2025-06-03 at 5 26 35 pm" src="https://github.com/user-attachments/assets/e3c15b77-bcda-4169-b7f6-ad97b75cda30" />
+
+#### Slide 7 - Top Genre
+Provides the user with their top genre listed to during the initially selected time period. 
+
+<img width="907" alt="Screenshot 2025-06-03 at 5 28 21 pm" src="https://github.com/user-attachments/assets/62489083-088e-4d98-b1d9-fde259de1c3e" />
+
+#### Slide 8 - Favourite Genres Ranked
+Informs the user of their top 8 genres listened to and the percentage of time those genres were listened to - informing their ranking position. 
+
+<img width="904" alt="Screenshot 2025-06-03 at 5 29 56 pm" src="https://github.com/user-attachments/assets/36f4ce88-e2b8-4a0f-bda0-72af5b734b62" />
+
+
+#### Slide 9 - Musical Moods
+
+<img width="901" alt="Screenshot 2025-06-03 at 5 30 13 pm" src="https://github.com/user-attachments/assets/7c000729-8c4d-4b33-9251-5b4d39f55fb5" />
+
+#### Slide 10 - Personality Analysis 
+Provides a personality prediction and description based on the user's music song and artist preferences. Also provides a percentage based on analysis confidence from us as developers, gener diversity and cultural range.
+
+<img width="903" alt="Screenshot 2025-06-03 at 5 30 30 pm" src="https://github.com/user-attachments/assets/e8f0b7f7-e70b-47bd-b458-2242477a1b22" />
+
+
+#### Slide 11 - Personality Deep Dive 
+Uses the user's music preferences to provide predictions regarding their harmony and empathy ability, organisation, emotional balance, social energy and creative openness.
+
+<img width="1254" alt="Screenshot 2025-06-03 at 5 30 48 pm" src="https://github.com/user-attachments/assets/c61bfeb6-2679-44ba-b2cf-8b4afaf20a17" />
+<img width="1143" alt="Screenshot 2025-06-03 at 5 31 02 pm" src="https://github.com/user-attachments/assets/223684b6-48d5-4296-8304-16d8416374f2" />
 
 ### Comparison to Existing Solutions
 
