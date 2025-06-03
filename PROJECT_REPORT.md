@@ -79,16 +79,36 @@ Provides a list of the user's x amount (selected on the features slide) of top a
 <img width="1512" alt="Screenshot 2025-06-03 at 5 14 33 pm" src="https://github.com/user-attachments/assets/9d1837b1-9665-48ac-a8ff-dd4feda209fd" />
 
 #### Slide 6 - Music Taste Analysis 
+Analyses the popularity score of the songs listened to and creates an average, which tells the user how mainstream the music they listen to is. It checks for the lowest popularity and highest popularity scores overall from the songs they listen to and provides the user with this minumum and maximum. 
+
+<img width="905" alt="Screenshot 2025-06-03 at 5 26 35 pm" src="https://github.com/user-attachments/assets/e3c15b77-bcda-4169-b7f6-ad97b75cda30" />
 
 #### Slide 7 - Top Genre
+Provides the user with their top genre listed to during the initially selected time period. 
+
+<img width="907" alt="Screenshot 2025-06-03 at 5 28 21 pm" src="https://github.com/user-attachments/assets/62489083-088e-4d98-b1d9-fde259de1c3e" />
 
 #### Slide 8 - Favourite Genres Ranked
+Informs the user of their top 8 genres listened to and the percentage of time those genres were listened to - informing their ranking position. 
 
-#### Slide 9 - 
+<img width="904" alt="Screenshot 2025-06-03 at 5 29 56 pm" src="https://github.com/user-attachments/assets/36f4ce88-e2b8-4a0f-bda0-72af5b734b62" />
+
+
+#### Slide 9 - Musical Moods
+
+<img width="901" alt="Screenshot 2025-06-03 at 5 30 13 pm" src="https://github.com/user-attachments/assets/7c000729-8c4d-4b33-9251-5b4d39f55fb5" />
 
 #### Slide 10 - Personality Analysis 
+Provides a personality prediction and description based on the user's music song and artist preferences. Also provides a percentage based on analysis confidence from us as developers, gener diversity and cultural range.
+
+<img width="903" alt="Screenshot 2025-06-03 at 5 30 30 pm" src="https://github.com/user-attachments/assets/e8f0b7f7-e70b-47bd-b458-2242477a1b22" />
+
 
 #### Slide 11 - Personality Deep Dive 
+Uses the user's music preferences to provide predictions regarding their harmony and empathy ability, organisation, emotional balance, social energy and creative openness.
+
+<img width="1254" alt="Screenshot 2025-06-03 at 5 30 48 pm" src="https://github.com/user-attachments/assets/c61bfeb6-2679-44ba-b2cf-8b4afaf20a17" />
+<img width="1143" alt="Screenshot 2025-06-03 at 5 31 02 pm" src="https://github.com/user-attachments/assets/223684b6-48d5-4296-8304-16d8416374f2" />
 
 
 ---
